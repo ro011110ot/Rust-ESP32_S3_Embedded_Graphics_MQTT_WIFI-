@@ -1,0 +1,20 @@
+# Rust build output
+/target
+
+# Lockfile excluded for embedded workspace flexibility
+Cargo.lock
+
+# Environment / secrets — MUST never be committed
+.env
+secrets.py
+
+# Python bytecode artifacts
+*.pyc
+__pycache__/
+
+# IDE directories
+.idea/
+.vscode/
+
+# Compiled binary files (e.g., LVGL font binaries)
+*.bin

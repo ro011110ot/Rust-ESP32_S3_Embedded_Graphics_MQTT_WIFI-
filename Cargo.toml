@@ -1,0 +1,49 @@
+[package]
+name = "esp32-s3-embedded-graphics-mqtt-wifi"
+version = "0.1.0"
+edition = "2021"
+description = "ESP32-S3 async dashboard with ILI9341 display, XPT2046 touch, MQTT, NTP, and RGB LED"
+
+[dependencies]
+# ESP-HAL: hardware abstraction layer for ESP32-S3 with embassy async support
+esp-hal = { version = "0.22.0", features = ["esp32s3", "embassy"] }
+# Smart LED driver for the onboard WS2812 RGB LED on GPIO 48
+esp-hal-smartled = { version = "0.14.0", features = ["esp32s3"] }
+# Wi-Fi and TCP/IP stack (smoltcp backend) for async networking
+esp-wifi = { version = "0.9.0", features = ["esp32s3", "wifi", "smoltcp"] }
+# Panic and exception handler for safe crash reporting
+esp-backtrace = { version = "0.14.0", features = ["esp32s3", "panic-handler", "exception-handler"] }
+# Print/log macros via USB serial JTAG
+esp-println = { version = "0.12.0", features = ["esp32s3", "log"] }
+# Graphics primitives for rendering on the ILI9341 display
+embedded-graphics = "0.8.1"
+# ILI9341 display driver over SPI
+mipidsi = "0.8.0"
+# SPI interface abstraction for display-interface compatibility
+display-interface-spi = "0.5.0"
+# Embedded-HAL v1 traits (SPI, GPIO, delay)
+embedded-hal = "1.0.0"
+# Bus sharing for the SPI bus (display + touch share SPI2)
+embedded-hal-bus = "0.2.0"
+# LED color types for the RGB LED (Rgb, Grm, etc.)
+smart-leds = "0.4.0"
+# I/O traits for TCP socket read/write
+embedded-io = "0.6.1"
+# Async I/O traits for non-blocking network operations
+embedded-io-async = "0.6.1"
+# Logging facade used across all modules
+log = "0.4.22"
+# Lock-free SPSC queue for LED command channel
+heapless = "0.8.0"
+# Fonts with German umlaut support for the display
+u8g2-fonts = "0.3.0"
+# Time/duration abstractions used by embassy timers
+embassy-time = { version = "0.3", features = ["defmt"] }
+# Smoltcp for raw TCP/UDP access (used by NTP)
+smoltcp = { version = "0.11", default-features = false, features = ["proto-ipv4", "proto-ipv6", "socket-raw", "socket-tcp", "socket-udp"] }
+
+[profile.release]
+lto = "fat"
+opt-level = "s"
+codegen-units = 1
+debug = false

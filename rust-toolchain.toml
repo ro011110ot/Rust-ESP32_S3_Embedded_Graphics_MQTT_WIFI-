@@ -1,0 +1,4 @@
+[toolchain]
+channel = "nightly-2025-12-01"
+targets = ["xtensa-esp32s3-none-elf"]
+components = ["rust-src", "llvm-tools"]

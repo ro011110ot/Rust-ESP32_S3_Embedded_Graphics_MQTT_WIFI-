@@ -1,0 +1,6 @@
+[target.xtensa-esp32s3-none-elf]
+# Use espflash to flash and monitor the device after build
+runner = "espflash flash --monitor"
+
+[build]
+target = "xtensa-esp32s3-none-elf"

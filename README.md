@@ -1,7 +1,7 @@
 # ESP32-S3 Async Rust Dashboard
 
 A production-ready, async Rust firmware for the **ESP32-S3** featuring a
-dark-themed 240x320 dashboard on an **ILI9341** display with **XPT2046**
+dark-themed 240×320 dashboard on an **ILI9341** display with **XPT2046**
 resistive touch, driving real-time data from MQTT sensors, a remote VPS,
 a local host monitor, and OpenWeatherMap.
 
@@ -30,9 +30,44 @@ a local host monitor, and OpenWeatherMap.
 | Touch     | XPT2046 Resistive Touch (shared SPI bus with display) |
 | LED       | WS2812B NeoPixel RGB (GPIO 48) |
 
-### Pin Configuration
+## Wiring
 
-All SPI devices share **HSPI / SPI2**:
+All SPI devices share **HSPI / SPI2** of the ESP32-S3.
+
+### ILI9341 Display (SPI)
+
+| ESP32-S3 GPIO | ILI9341 Pin | Cable Colour |
+|:---|---:|:---|
+| GPIO 12 (SPI2 SCK)  | SCK  | Yellow |
+| GPIO 11 (SPI2 MOSI) | SDI  | Green  |
+| GPIO 13 (SPI2 MISO) | SDO  | Orange |
+| GPIO 10             | CS   | Blue   |
+| GPIO 7              | DC   | Violet |
+| GPIO 9              | RESET| Grey   |
+| GPIO 38             | BL   | White  |
+| 3.3 V               | VCC  | Red    |
+| GND                 | GND  | Black  |
+
+### XPT2046 Touch Controller (shared SPI)
+
+| ESP32-S3 GPIO | XPT2046 Pin | Cable Colour |
+|:---|---:|:---|
+| GPIO 12 (SPI2 SCK)  | T_CLK | Yellow |
+| GPIO 11 (SPI2 MOSI) | T_DIN | Green  |
+| GPIO 13 (SPI2 MISO) | T_DO  | Orange |
+| GPIO 3              | T_CS  | Brown  |
+| 3.3 V               | VCC   | Red    |
+| GND                 | GND   | Black  |
+
+### WS2812B RGB LED
+
+| ESP32-S3 GPIO | WS2812 Pin |
+|:---|---:|
+| GPIO 48 | Data In |
+| 5 V     | VCC     |
+| GND     | GND     |
+
+### Summary Pin Table
 
 | Signal    | GPIO | Connected To       |
 |-----------|------|--------------------|
@@ -78,19 +113,35 @@ cp .env_TEMPLATE .env
 ```
 
 Edit `.env` with your Wi-Fi SSID/password, MQTT broker, and
-OpenWeatherMap API key:
+OpenWeatherMap API key. All available variables:
 
 ```ini
+# Wi-Fi credentials — multiple networks for fallback
 WIFI_SSID_0=MyHomeNetwork
 WIFI_PASS_0=MySecurePassword
+WIFI_SSID_1=
+WIFI_PASS_1=
+WIFI_SSID_2=
+WIFI_PASS_2=
+
+# OpenWeatherMap API key and location
 OWM_API_KEY=your_openweathermap_api_key
 OWM_CITY=Berlin
 OWM_COUNTRY=DE
+
+# MQTT broker credentials
 MQTT_BROKER=192.168.1.100
 MQTT_PORT=1883
 MQTT_USER=mqtt_user
 MQTT_PASS=mqtt_password
 MQTT_CLIENT_ID=ESP32-S3-Rust
+MQTT_TOPIC_PREFIX=Display
+
+# NTP server for time synchronisation
+NTP_SERVER=de.pool.ntp.org
+
+# OpenWeatherMap API host IP (override DNS)
+OWM_HOST=185.199.110.153
 ```
 
 > ⚠️ **Security**: `.env` is listed in `.gitignore` and must never be

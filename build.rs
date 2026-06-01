@@ -41,6 +41,11 @@ fn main() {
 
     println!("cargo:rerun-if-changed=.env");
 
+    // Build toolchain paths from HOME so they're portable across machines
+    let home_dir = std::env::var("HOME").expect("HOME environment variable not set");
+    let toolchain_bin_path = format!("{}/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin", home_dir);
+    let toolchain_include_path = format!("{}/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/15.2.0/include", home_dir);
+
     // ── 2. Linker script & error handling ────────────────────────────
     linker_be_nice();
 
@@ -48,15 +53,13 @@ fn main() {
     // problems with flip-link)
     println!("cargo:rustc-link-arg=-Tlinkall.x");
 
+    // Point linker at toolchain binaries so we don't hardcode the linker path in config.toml
+    println!("cargo:rustc-link-arg=-B{}", toolchain_bin_path);
+
     // ── 3. Generate stub libprintf.a ────────────────────────────────
     let out_dir = std::path::PathBuf::from(
         std::env::var("OUT_DIR").expect("OUT_DIR not set"),
     );
-
-    // Definiere den Toolchain-Pfad als Konstante oder Variable
-    let home_dir = std::env::var("HOME").expect("HOME environment variable not set");
-    let toolchain_bin_path = format!("{}/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin", home_dir);
-    let toolchain_include_path = format!("{}/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/15.2.0/include", home_dir);
 
     let cc = std::env::var("CC")
         .unwrap_or_else(|_| format!("{}/xtensa-esp32s3-elf-gcc", toolchain_bin_path));

@@ -3,7 +3,6 @@ build-std = ["core", "compiler_builtins", "alloc"]
 
 [target.xtensa-esp32s3-none-elf]
 runner = "espflash flash --monitor"
-linker = "/home/ro011110ot/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc"
 
 [build]
 rustflags = [
@@ -11,7 +10,3 @@ rustflags = [
   "-C", "link-arg=-Wl,--no-relax",
 ]
 target = "xtensa-esp32s3-none-elf"
-
-[env]
-PATH = { value = "/home/ro011110ot/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin", relative = false, operation = "prepend" }
-LIBCLANG_PATH = "/home/ro011110ot/.rustup/toolchains/esp/xtensa-esp32-elf-clang/esp-20.1.1_20250829/esp-clang/lib"

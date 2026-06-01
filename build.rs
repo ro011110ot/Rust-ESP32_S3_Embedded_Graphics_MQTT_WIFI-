@@ -53,14 +53,25 @@ fn main() {
         std::env::var("OUT_DIR").expect("OUT_DIR not set"),
     );
 
-    let cc = std::env::var("CC")
-        .unwrap_or_else(|_| "xtensa-esp32s3-elf-gcc".to_string());
-    let ar = std::env::var("AR")
-        .unwrap_or_else(|_| "xtensa-esp32s3-elf-ar".to_string());
+    // Definiere den Toolchain-Pfad als Konstante oder Variable
+    let home_dir = std::env::var("HOME").expect("HOME environment variable not set");
+    let toolchain_bin_path = format!("{}/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/bin", home_dir);
+    let toolchain_include_path = format!("{}/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/15.2.0/include", home_dir);
 
+    let cc = std::env::var("CC")
+        .unwrap_or_else(|_| format!("{}/xtensa-esp32s3-elf-gcc", toolchain_bin_path));
+    let ar = std::env::var("AR")
+        .unwrap_or_else(|_| format!("{}/xtensa-esp32s3-elf-ar", toolchain_bin_path));
     let stub_c = out_dir.join("printf_stub.c");
     let stub_o = out_dir.join("printf_stub.o");
     let stub_a = out_dir.join("libprintf.a");
+
+    if !Path::new(&cc).exists() {
+        println!("cargo:warning=CC executable not found at: {}", cc);
+    }
+    if !Path::new(&ar).exists() {
+        println!("cargo:warning=AR executable not found at: {}", ar);
+    }
 
     if !stub_a.exists() {
         let c_code = r#"
@@ -139,7 +150,7 @@ void *memset(void *d, int c, size_t n) {
                 stub_o.to_str().unwrap(),
                 stub_c.to_str().unwrap(),
                 "-nostdlib", "-ffreestanding",
-                "-I", "/home/ro011110ot/.rustup/toolchains/esp/xtensa-esp-elf/esp-15.2.0_20250920/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/15.2.0/include",
+                "-I", &toolchain_include_path,
             ])
             .status()
             .expect("failed to compile printf stub");

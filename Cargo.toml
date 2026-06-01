@@ -1,5 +1,5 @@
 [package]
-name = "ESP32_Dash"
+name = "esp32-s3-embedded-graphics-mqtt-wifi"
 version = "0.1.0"
 edition = "2021"
 description = "ESP32-S3 async dashboard with ILI9341 display, XPT2046 touch, MQTT, NTP, and RGB LED"

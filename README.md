@@ -1,4 +1,4 @@
-# ESP32_Dash
+# ESP32-S3 Async Rust Dashboard
 
 A production-ready, async Rust firmware for the **ESP32-S3** featuring a
 dark-themed 240×320 dashboard on an **ILI9341** display with **XPT2046**
@@ -151,7 +151,7 @@ OWM_HOST=185.199.110.153
 
 ```bash
 cargo build --release
-espflash flash target/xtensa-esp32s3-none-elf/release/ESP32_Dash --monitor
+espflash flash target/xtensa-esp32s3-none-elf/release/esp32-s3-embedded-graphics-mqtt-wifi --monitor
 ```
 
 Or use the cargo runner shorthand:

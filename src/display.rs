@@ -3,6 +3,7 @@ use alloc::format;
 use alloc::string::ToString;
 use alloc::vec;
 use core::fmt::Write;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 use embedded_hal_bus::spi::AtomicDevice;
 use embedded_hal_bus::util::AtomicCell;
@@ -62,18 +63,64 @@ const TOUCH_Y_MAX: u16 = 1850;
 const TOUCH_X_OFFSET: i32 = 20;
 const TOUCH_Y_OFFSET: i32 = 0;
 
-const THEME_BG: Rgb565 = Rgb565::new(3, 6, 3);
-const THEME_CARD: Rgb565 = Rgb565::new(5, 10, 5);
-const THEME_BORDER: Rgb565 = Rgb565::new(8, 16, 9);
-const THEME_PRIMARY: Rgb565 = Rgb565::new(6, 46, 31);
-const THEME_SECONDARY: Rgb565 = Rgb565::new(2, 46, 16);
-const THEME_WARNING: Rgb565 = Rgb565::new(30, 39, 1);
-const THEME_DANGER: Rgb565 = Rgb565::new(29, 17, 8);
-const THEME_TEXT: Rgb565 = Rgb565::new(30, 61, 30);
-const THEME_TEXT_MUTED: Rgb565 = Rgb565::new(18, 36, 18);
-const THEME_NAV: Rgb565 = Rgb565::new(3, 6, 3);
-const THEME_NAV_ACTIVE: Rgb565 = Rgb565::new(8, 16, 9);
-const THEME_NAV_INACTIVE: Rgb565 = Rgb565::new(5, 10, 5);
+struct Theme {
+    bg: Rgb565,
+    card: Rgb565,
+    border: Rgb565,
+    primary: Rgb565,
+    secondary: Rgb565,
+    warning: Rgb565,
+    danger: Rgb565,
+    text: Rgb565,
+    text_muted: Rgb565,
+    nav: Rgb565,
+    nav_active: Rgb565,
+    nav_inactive: Rgb565,
+}
+
+const THEME_DEFAULT: Theme = Theme {
+    bg: Rgb565::new(3, 6, 3),
+    card: Rgb565::new(5, 10, 5),
+    border: Rgb565::new(8, 16, 9),
+    primary: Rgb565::new(6, 46, 31),
+    secondary: Rgb565::new(2, 46, 16),
+    warning: Rgb565::new(30, 39, 1),
+    danger: Rgb565::new(29, 17, 8),
+    text: Rgb565::new(30, 61, 30),
+    text_muted: Rgb565::new(18, 36, 18),
+    nav: Rgb565::new(3, 6, 3),
+    nav_active: Rgb565::new(8, 16, 9),
+    nav_inactive: Rgb565::new(5, 10, 5),
+};
+
+const THEME_DARK: Theme = Theme {
+    bg: Rgb565::new(1, 1, 2),
+    card: Rgb565::new(4, 6, 10),
+    border: Rgb565::new(7, 10, 15),
+    primary: Rgb565::new(0, 31, 31),
+    secondary: Rgb565::new(0, 15, 31),
+    warning: Rgb565::new(31, 40, 0),
+    danger: Rgb565::new(31, 8, 8),
+    text: Rgb565::new(31, 63, 31),
+    text_muted: Rgb565::new(12, 18, 22),
+    nav: Rgb565::new(1, 1, 2),
+    nav_active: Rgb565::new(7, 10, 15),
+    nav_inactive: Rgb565::new(4, 6, 10),
+};
+
+static DARK_MODE: AtomicBool = AtomicBool::new(false);
+
+fn theme() -> &'static Theme {
+    if DARK_MODE.load(Ordering::Relaxed) {
+        &THEME_DARK
+    } else {
+        &THEME_DEFAULT
+    }
+}
+
+pub fn toggle_theme() {
+    DARK_MODE.fetch_xor(true, Ordering::Relaxed);
+}
 
 static mut FB: Option<Box<[u8]>> = None;
 
@@ -208,14 +255,14 @@ fn draw_card<D: DrawTarget<Color = Rgb565>>(
 ) -> Result<(), D::Error> {
     Rectangle::new(Point::new(x, y), Size::new(w as u32, h as u32))
         .draw_styled(
-            &PrimitiveStyleBuilder::new().fill_color(THEME_CARD).build(),
+            &PrimitiveStyleBuilder::new().fill_color(theme().card).build(),
             display,
         )?;
     Rectangle::new(Point::new(x, y), Size::new(w as u32, 1))
         .draw_styled(
             &PrimitiveStyleBuilder::new()
-                .fill_color(THEME_BORDER)
-                .stroke_color(THEME_BORDER)
+                .fill_color(theme().border)
+                .stroke_color(theme().border)
                 .stroke_width(1)
                 .build(),
             display,
@@ -241,7 +288,7 @@ fn draw_progress_bar<D: DrawTarget<Color = Rgb565>>(
     Rectangle::new(Point::new(x, y), Size::new(w as u32, h as u32))
         .draw_styled(
             &PrimitiveStyleBuilder::new()
-                .fill_color(THEME_BORDER)
+                .fill_color(theme().border)
                 .build(),
             display,
         )?;
@@ -264,11 +311,11 @@ fn draw_status_bar<D: DrawTarget<Color = Rgb565>>(
 ) -> Result<(), D::Error> {
     Rectangle::new(Point::new(0, CONTENT_Y), Size::new(DISP_W as u32, STATUS_H as u32))
         .draw_styled(
-            &PrimitiveStyleBuilder::new().fill_color(THEME_BG).build(),
+            &PrimitiveStyleBuilder::new().fill_color(theme().bg).build(),
             display,
         )?;
-    draw_text(display, time_str, 4, CONTENT_Y + 4, &FONT_6X10, THEME_TEXT_MUTED)?;
-    let dot_color = if wifi_connected { THEME_SECONDARY } else { THEME_DANGER };
+    draw_text(display, time_str, 4, CONTENT_Y + 4, &FONT_6X10, theme().text_muted)?;
+    let dot_color = if wifi_connected { theme().secondary } else { theme().danger };
     Rectangle::new(Point::new(DISP_W as i32 - 14, CONTENT_Y + 6), Size::new(8, 8))
         .draw_styled(
             &PrimitiveStyleBuilder::new().fill_color(dot_color).build(),
@@ -282,7 +329,7 @@ fn draw_nav_bar<D: DrawTarget<Color = Rgb565>>(
 ) -> Result<(), D::Error> {
     Rectangle::new(Point::new(0, NAV_TOP), Size::new(DISP_W as u32, NAV_H as u32))
         .draw_styled(
-            &PrimitiveStyleBuilder::new().fill_color(THEME_NAV).build(),
+            &PrimitiveStyleBuilder::new().fill_color(theme().nav).build(),
             display,
         )?;
     for (i, screen) in Screen::all().iter().enumerate() {
@@ -295,7 +342,7 @@ fn draw_nav_bar<D: DrawTarget<Color = Rgb565>>(
         .draw_styled(
             &PrimitiveStyleBuilder::new()
                 .fill_color(
-                    if is_active { THEME_NAV_ACTIVE } else { THEME_NAV_INACTIVE },
+                    if is_active { theme().nav_active } else { theme().nav_inactive },
                 )
                 .build(),
             display,
@@ -306,7 +353,7 @@ fn draw_nav_bar<D: DrawTarget<Color = Rgb565>>(
             x + (NAV_BTN_W - (label.len() as i32 * 9)) / 2,
             NAV_TOP + 14,
             &FONT_6X10,
-            if is_active { THEME_TEXT } else { THEME_TEXT_MUTED },
+            if is_active { theme().text } else { theme().text_muted },
         )?;
     }
     Ok(())
@@ -379,6 +426,41 @@ fn draw_weather_icon<D: DrawTarget<Color = Rgb565>>(
     Ok(())
 }
 
+const THEME_BTN_X: i32 = 218;
+const THEME_BTN_Y: i32 = CONTENT_Y + 24;
+const THEME_BTN_W: i32 = 22;
+const THEME_BTN_H: i32 = 22;
+
+fn draw_theme_toggle_button<D: DrawTarget<Color = Rgb565>>(
+    display: &mut D,
+) -> Result<(), D::Error> {
+    Rectangle::new(
+        Point::new(THEME_BTN_X, THEME_BTN_Y),
+        Size::new(THEME_BTN_W as u32, THEME_BTN_H as u32),
+    )
+    .draw_styled(
+        &PrimitiveStyleBuilder::new()
+            .fill_color(theme().card)
+            .stroke_color(theme().border)
+            .stroke_width(1)
+            .build(),
+        display,
+    )?;
+    let is_dark = DARK_MODE.load(Ordering::Relaxed);
+    let indicator_color = if is_dark { theme().primary } else { theme().warning };
+    Rectangle::new(
+        Point::new(THEME_BTN_X + 7, THEME_BTN_Y + 7),
+        Size::new(8, 8),
+    )
+    .draw_styled(
+        &PrimitiveStyleBuilder::new()
+            .fill_color(indicator_color)
+            .build(),
+        display,
+    )?;
+    Ok(())
+}
+
 fn draw_weather_screen<D: DrawTarget<Color = Rgb565>>(
     display: &mut D, state: &AppState,
 ) -> Result<(), D::Error> {
@@ -389,26 +471,27 @@ fn draw_weather_screen<D: DrawTarget<Color = Rgb565>>(
     } else {
         "--.--.----".to_string()
     };
-    draw_text(display, &time_str, 10, 28 + CONTENT_Y + TITLE_Y_INC, &FONT_6X10, THEME_TEXT_MUTED)?;
+    draw_text(display, &time_str, 10, 28 + CONTENT_Y + TITLE_Y_INC, &FONT_6X10, theme().text_muted)?;
     let time_str2 = if let Some(t) = data.local_time {
         format!("{:02}:{:02}:{:02}", t.hour, t.minute, t.second)
     } else {
         "--:--:--".to_string()
     };
-    draw_text(display, &time_str2, 10, 52 + CONTENT_Y + TITLE_Y_INC, &FONT_9X15, THEME_PRIMARY)?;
+    draw_text(display, &time_str2, 10, 52 + CONTENT_Y + TITLE_Y_INC, &FONT_9X15, theme().primary)?;
+    draw_theme_toggle_button(display)?;
     draw_card(display, 5, 85 + CONTENT_Y, 230, 72)?;
     let temp_str = if let Some(ref w) = data.weather {
         format!("{} C", fmt_1dp_w(w.temp))
     } else {
         "--.- C".to_string()
     };
-    draw_text(display, &temp_str, 10, 95 + CONTENT_Y, &FONT_9X18_BOLD, THEME_TEXT)?;
+    draw_text(display, &temp_str, 10, 95 + CONTENT_Y, &FONT_9X18_BOLD, theme().text)?;
     let desc_str = if let Some(w) = &data.weather {
         sanitize_text(&w.desc)
     } else {
         heapless::String::try_from("--").unwrap()
     };
-    draw_text(display, &desc_str, 10, 120 + CONTENT_Y, &FONT_6X10, THEME_TEXT_MUTED)?;
+    draw_text(display, &desc_str, 10, 120 + CONTENT_Y, &FONT_6X10, theme().text_muted)?;
     let icon_code = data.weather.as_ref().map(|w| w.icon.as_str()).unwrap_or("--");
     draw_weather_icon(display, icon_code, 170, 102)?;
     let (t, h, w, p) = if let Some(ref wx) = data.weather {
@@ -417,22 +500,22 @@ fn draw_weather_screen<D: DrawTarget<Color = Rgb565>>(
         (0.0, 0.0, 0.0, 0.0)
     };
     draw_card(display, 5, 163 + CONTENT_Y, 108, 64)?;
-    draw_text(display, "Temp", 8, 171 + CONTENT_Y, &FONT_6X10, THEME_WARNING)?;
-    draw_text(display, &format!("{}C", fmt_1dp_w(t)), 8, 189 + CONTENT_Y, &FONT_6X10, THEME_TEXT)?;
+    draw_text(display, "Temp", 8, 171 + CONTENT_Y, &FONT_6X10, theme().warning)?;
+    draw_text(display, &format!("{}C", fmt_1dp_w(t)), 8, 189 + CONTENT_Y, &FONT_6X10, theme().text)?;
     draw_card(display, 119, 163 + CONTENT_Y, 108, 64)?;
-    draw_text(display, "Feuchte", 122, 171 + CONTENT_Y, &FONT_6X10, THEME_PRIMARY)?;
+    draw_text(display, "Feuchte", 122, 171 + CONTENT_Y, &FONT_6X10, theme().primary)?;
     draw_text(
-        display, &format!("{}%", fmt_0dp_w(h)), 122, 189 + CONTENT_Y, &FONT_6X10, THEME_TEXT,
+        display, &format!("{}%", fmt_0dp_w(h)), 122, 189 + CONTENT_Y, &FONT_6X10, theme().text,
     )?;
     draw_card(display, 5, 233 + CONTENT_Y, 108, 64)?;
-    draw_text(display, "Wind", 8, 241 + CONTENT_Y, &FONT_6X10, THEME_SECONDARY)?;
+    draw_text(display, "Wind", 8, 241 + CONTENT_Y, &FONT_6X10, theme().secondary)?;
     draw_text(
-        display, &format!("{}km/h", fmt_1dp_w(w)), 8, 259 + CONTENT_Y, &FONT_6X10, THEME_TEXT,
+        display, &format!("{}km/h", fmt_1dp_w(w)), 8, 259 + CONTENT_Y, &FONT_6X10, theme().text,
     )?;
     draw_card(display, 119, 233 + CONTENT_Y, 108, 64)?;
-    draw_text(display, "Druck", 122, 241 + CONTENT_Y, &FONT_6X10, THEME_WARNING)?;
+    draw_text(display, "Druck", 122, 241 + CONTENT_Y, &FONT_6X10, theme().warning)?;
     draw_text(
-        display, &format!("{}hPa", fmt_0dp_w(p)), 122, 259 + CONTENT_Y, &FONT_6X10, THEME_TEXT,
+        display, &format!("{}hPa", fmt_0dp_w(p)), 122, 259 + CONTENT_Y, &FONT_6X10, theme().text,
     )?;
     Ok(())
 }
@@ -440,7 +523,7 @@ fn draw_weather_screen<D: DrawTarget<Color = Rgb565>>(
 fn draw_sensors_screen<D: DrawTarget<Color = Rgb565>>(
     display: &mut D, state: &AppState,
 ) -> Result<(), D::Error> {
-    draw_text(display, "Sensor-Daten", 60, 26 + CONTENT_Y + TITLE_Y_INC, &FONT_9X15, THEME_PRIMARY)?;
+    draw_text(display, "Sensor-Daten", 60, 26 + CONTENT_Y + TITLE_Y_INC, &FONT_9X15, theme().primary)?;
     let data = state.read();
     let sensors = &data.sensors;
     let card_w = 108i32;
@@ -456,11 +539,11 @@ fn draw_sensors_screen<D: DrawTarget<Color = Rgb565>>(
         draw_card(display, x, y, card_w, card_h)?;
         if let Some(sensor) = sensors.get(i as usize) {
             let label = sanitize_text(sensor.label.as_str());
-            draw_text(display, &label, x + 4, y + 4, &FONT_6X10, THEME_TEXT_MUTED)?;
+            draw_text(display, &label, x + 4, y + 4, &FONT_6X10, theme().text_muted)?;
             let value = sanitize_text(sensor.value.as_str());
-            draw_text(display, &value, x + 4, y + 32, &FONT_6X10, THEME_TEXT)?;
+            draw_text(display, &value, x + 4, y + 32, &FONT_6X10, theme().text)?;
         } else {
-            draw_text(display, "--", x + 4, y + 32, &FONT_6X10, THEME_TEXT_MUTED)?;
+            draw_text(display, "--", x + 4, y + 32, &FONT_6X10, theme().text_muted)?;
         }
     }
     Ok(())
@@ -469,7 +552,7 @@ fn draw_sensors_screen<D: DrawTarget<Color = Rgb565>>(
 fn draw_vps_screen<D: DrawTarget<Color = Rgb565>>(
     display: &mut D, state: &AppState,
 ) -> Result<(), D::Error> {
-    draw_text(display, "VPS Status", 78, 50 + CONTENT_Y, &FONT_9X15, THEME_PRIMARY)?;
+    draw_text(display, "VPS Status", 78, 50 + CONTENT_Y, &FONT_9X15, theme().primary)?;
     let data = state.read();
     let (cpu, ram, disk, uptime_secs) = if let Some(v) = data.vps {
         (v.cpu_pct, v.ram_pct, v.disk_pct, v.uptime_secs)
@@ -477,30 +560,30 @@ fn draw_vps_screen<D: DrawTarget<Color = Rgb565>>(
         (0.0, 0.0, 0.0, 0u64)
     };
     draw_card(display, 5, 46 + CONTENT_Y, 230, 52)?;
-    draw_text(display, "CPU Auslastung", 12, 50 + CONTENT_Y, &FONT_6X10, THEME_TEXT_MUTED)?;
+    draw_text(display, "CPU Auslastung", 12, 50 + CONTENT_Y, &FONT_6X10, theme().text_muted)?;
     draw_text(
         display, &format!("{}%", fmt_0dp_w(cpu)), 200, 50 + CONTENT_Y,
-        &FONT_6X10, THEME_WARNING,
+        &FONT_6X10, theme().warning,
     )?;
-    draw_progress_bar(display, 16, 68 + CONTENT_Y, 200, 12, cpu as u8, THEME_WARNING)?;
+    draw_progress_bar(display, 16, 68 + CONTENT_Y, 200, 12, cpu as u8, theme().warning)?;
     draw_card(display, 5, 106 + CONTENT_Y, 230, 52)?;
-    draw_text(display, "RAM Auslastung", 12, 110 + CONTENT_Y, &FONT_6X10, THEME_TEXT_MUTED)?;
+    draw_text(display, "RAM Auslastung", 12, 110 + CONTENT_Y, &FONT_6X10, theme().text_muted)?;
     draw_text(
         display, &format!("{}%", fmt_0dp_w(ram)), 200, 110 + CONTENT_Y,
-        &FONT_6X10, THEME_PRIMARY,
+        &FONT_6X10, theme().primary,
     )?;
-    draw_progress_bar(display, 16, 128 + CONTENT_Y, 200, 12, ram as u8, THEME_PRIMARY)?;
+    draw_progress_bar(display, 16, 128 + CONTENT_Y, 200, 12, ram as u8, theme().primary)?;
     draw_card(display, 5, 166 + CONTENT_Y, 230, 52)?;
-    draw_text(display, "Speicher", 12, 170 + CONTENT_Y, &FONT_6X10, THEME_TEXT_MUTED)?;
+    draw_text(display, "Speicher", 12, 170 + CONTENT_Y, &FONT_6X10, theme().text_muted)?;
     draw_text(
         display, &format!("{}%", fmt_0dp_w(disk)), 200, 170 + CONTENT_Y,
-        &FONT_6X10, THEME_SECONDARY,
+        &FONT_6X10, theme().secondary,
     )?;
-    draw_progress_bar(display, 16, 188 + CONTENT_Y, 200, 12, disk as u8, THEME_SECONDARY)?;
+    draw_progress_bar(display, 16, 188 + CONTENT_Y, 200, 12, disk as u8, theme().secondary)?;
     draw_card(display, 5, 226 + CONTENT_Y, 230, 44)?;
-    draw_text(display, "System Uptime", 12, 230 + CONTENT_Y, &FONT_6X10, THEME_TEXT_MUTED)?;
+    draw_text(display, "System Uptime", 12, 230 + CONTENT_Y, &FONT_6X10, theme().text_muted)?;
     let uptime_str = format_uptime(uptime_secs);
-    draw_text(display, &uptime_str, 12, 248 + CONTENT_Y, &FONT_6X10, THEME_TEXT)?;
+    draw_text(display, &uptime_str, 12, 248 + CONTENT_Y, &FONT_6X10, theme().text)?;
     Ok(())
 }
 
@@ -521,7 +604,7 @@ fn draw_host_screen<D: DrawTarget<Color = Rgb565>>(
     display: &mut D, state: &AppState,
 ) -> Result<(), D::Error> {
     draw_text(display, "Host Monitor", 72, 40 + CONTENT_Y,
-              &FONT_9X15, THEME_PRIMARY)?;
+              &FONT_9X15, theme().primary)?;
     let data = state.read();
     let (cpu, cpu_temp, ram_pct, ssd_temp, net_down) = if let Some(h) = data.host {
         (h.cpu, h.cpu_temp, h.ram_pct, h.ssd_temp, h.net_down)
@@ -530,19 +613,19 @@ fn draw_host_screen<D: DrawTarget<Color = Rgb565>>(
     };
     draw_card(display, 5, 36 + CONTENT_Y, 230, 72)?;
     draw_text(display, "CPU Auslastung", 12, 40 + CONTENT_Y,
-              &FONT_6X10, THEME_TEXT_MUTED)?;
+              &FONT_6X10, theme().text_muted)?;
     for (i, &core_val) in cpu.iter().enumerate() {
         let by = 52 + CONTENT_Y + i as i32 * 10;
         draw_text(display, &format!("C{}", i), 12, by,
-                  &FONT_6X10, THEME_TEXT_MUTED)?;
+                  &FONT_6X10, theme().text_muted)?;
         draw_progress_bar(display, 40, by + 2, 140, 6,
-                          core_val as u8, THEME_PRIMARY)?;
+                          core_val as u8, theme().primary)?;
         draw_text(display, &format!("{}", fmt_0dp_w(core_val)),
-                  210, by, &FONT_6X10, THEME_PRIMARY)?;
+                  210, by, &FONT_6X10, theme().primary)?;
     }
     draw_card(display, 5, 114 + CONTENT_Y, 230, 42)?;
     draw_text(display, "Temperaturen", 12, 118 + CONTENT_Y,
-              &FONT_6X10, THEME_TEXT_MUTED)?;
+              &FONT_6X10, theme().text_muted)?;
     let t_str = if ssd_temp > 0.0 {
         format!("CPU:{}C SSD:{}C", fmt_0dp_w(cpu_temp),
                 fmt_1dp_w(ssd_temp))
@@ -550,34 +633,34 @@ fn draw_host_screen<D: DrawTarget<Color = Rgb565>>(
         format!("CPU:{}C SSD:--C", fmt_0dp_w(cpu_temp))
     };
     draw_text(display, &t_str, 12, 132 + CONTENT_Y,
-              &FONT_6X10, THEME_TEXT)?;
+              &FONT_6X10, theme().text)?;
     let t_color = if cpu_temp < 55.0 {
-        THEME_SECONDARY
+        theme().secondary
     } else if cpu_temp < 75.0 {
-        THEME_WARNING
+        theme().warning
     } else {
-        THEME_DANGER
+        theme().danger
     };
     draw_progress_bar(display, 12, 146 + CONTENT_Y, 210, 8,
                       cpu_temp as u8, t_color)?;
     draw_card(display, 5, 162 + CONTENT_Y, 230, 42)?;
     draw_text(display, "RAM Auslastung", 12, 166 + CONTENT_Y,
-              &FONT_6X10, THEME_TEXT_MUTED)?;
+              &FONT_6X10, theme().text_muted)?;
     let used_gb = ram_pct * 32.0 / 100.0;
     draw_text(display, &format!("{} GB / 32 GB", fmt_1dp_w(used_gb)),
-              150, 166 + CONTENT_Y, &FONT_6X10, THEME_TEXT)?;
+              150, 166 + CONTENT_Y, &FONT_6X10, theme().text)?;
     draw_progress_bar(display, 12, 180 + CONTENT_Y, 210, 10,
-                      ram_pct as u8, THEME_PRIMARY)?;
+                      ram_pct as u8, theme().primary)?;
     draw_card(display, 5, 210 + CONTENT_Y, 230, 42)?;
     draw_text(display, "Netzwerk", 12, 214 + CONTENT_Y,
-              &FONT_6X10, THEME_TEXT_MUTED)?;
+              &FONT_6X10, theme().text_muted)?;
     let net_str = if net_down > 1024.0 {
         format!("DL: {} MB/s", fmt_2dp_w(net_down / 1024.0))
     } else {
         format!("DL: {} KB/s", fmt_1dp_w(net_down))
     };
     draw_text(display, &net_str, 12, 230 + CONTENT_Y,
-              &FONT_6X10, THEME_TEXT)?;
+              &FONT_6X10, theme().text)?;
     Ok(())
 }
 
@@ -766,7 +849,9 @@ pub async fn display_task(state: &'static AppState) {
                 _ = backlight.set_high();
                 log::info!("Display: backlight ON (touch wake)");
             } else {
-                handle_nav_touch(tx, ty, state);
+                if !handle_nav_touch(tx, ty, state) {
+                    handle_theme_toggle(tx, ty, state);
+                }
             }
         }
 
@@ -779,7 +864,7 @@ pub async fn display_task(state: &'static AppState) {
                     Point::new(0, 0),
                     Size::new(DISP_W as u32, DISP_H as u32),
                 ),
-                THEME_BG,
+                theme().bg,
             ).ok();
 
             // 2) Status bar
@@ -836,6 +921,18 @@ fn format_time(state: &AppState) -> heapless::String<32> {
     } else {
         heapless::String::try_from("--:--:--").unwrap()
     }
+}
+
+fn handle_theme_toggle(tx: i32, ty: i32, state: &AppState) -> bool {
+    if state.read().active_screen != Screen::Weather { return false; }
+    if tx >= THEME_BTN_X && tx < THEME_BTN_X + THEME_BTN_W
+        && ty >= THEME_BTN_Y && ty < THEME_BTN_Y + THEME_BTN_H
+    {
+        toggle_theme();
+        log::info!("Display: theme toggled (dark={})", DARK_MODE.load(Ordering::Relaxed));
+        return true;
+    }
+    false
 }
 
 pub fn handle_nav_touch(tx: i32, ty: i32, state: &AppState) -> bool {

@@ -188,6 +188,7 @@ use alloc::format;
 use crate::led::LedCommand;
 use crate::time;
 use crate::AppState;
+use esp_hal::system::software_reset;
 
 use embassy_net::dns::DnsQueryType;
 use embassy_net::tcp::TcpSocket;
@@ -199,12 +200,14 @@ const NTP_INTERVAL_SECS: u64 = 4 * 3600;
 const NTP_RETRY_SECS: u64 = 30;
 const WEATHER_INTERVAL_SECS: u64 = 300;
 const MQTT_PING_INTERVAL_SECS: u64 = 30;
+const MAX_RECONNECT_FAILS: u32 = 5;
 
 pub async fn network_task(
     stack: Stack<'static>,
     mut wifi_ctrl: esp_radio::wifi::WifiController<'static>,
     state: &'static AppState,
 ) -> ! {
+    let mut reconnect_fails: u32 = 0;
     loop {
         led_command(LedCommand::WifiConnecting);
         let creds = get_wifi_credentials();
@@ -242,11 +245,26 @@ pub async fn network_task(
         }
 
         if wifi_ok {
+            reconnect_fails = 0;
             log::info!("WiFi: connected");
             state.set_wifi_connected(true);
             led_command(LedCommand::MqttConnecting);
         } else {
-            log::warn!("WiFi: all credentials failed, retrying in 30s");
+            reconnect_fails += 1;
+            log::warn!(
+                "WiFi: reconnect attempt {}/{} failed, retrying in 30s",
+                reconnect_fails,
+                MAX_RECONNECT_FAILS,
+            );
+            if reconnect_fails >= MAX_RECONNECT_FAILS {
+                log::error!(
+                    "WiFi: {} consecutive failures, performing hard reset",
+                    reconnect_fails,
+                );
+                led_command(LedCommand::Error);
+                Timer::after(Duration::from_millis(500)).await;
+                software_reset();
+            }
             state.set_wifi_connected(false);
             Timer::after(Duration::from_secs(30)).await;
             continue;
@@ -255,14 +273,25 @@ pub async fn network_task(
         stack.wait_config_up().await;
         log::info!("Network: DHCP config received");
 
-        let broker_ip: embassy_net::Ipv4Address =
-            match env_or_panic!("MQTT_BROKER").parse() {
+        let broker_host = env_or_panic!("MQTT_BROKER");
+        let broker_ip: embassy_net::Ipv4Address = match broker_host.parse() {
             Ok(ip) => ip,
             Err(_) => {
-                log::warn!("MQTT: invalid broker IP, retrying");
-                led_command(LedCommand::Error);
-                Timer::after(Duration::from_secs(30)).await;
-                continue;
+                log::info!("MQTT: resolving {} via DNS...", broker_host);
+                loop {
+                    match stack.dns_query(broker_host, DnsQueryType::A).await {
+                        Ok(addrs) => match addrs.get(0) {
+                            Some(IpAddress::Ipv4(addr)) => {
+                                log::info!("MQTT: resolved {} to {}", broker_host, addr);
+                                break *addr;
+                            }
+                            _ => log::warn!("MQTT: DNS returned no IPv4 address"),
+                        },
+                        Err(e) => log::warn!("MQTT: DNS lookup failed: {:?}", e),
+                    }
+                    led_command(LedCommand::Error);
+                    Timer::after(Duration::from_secs(30)).await;
+                }
             }
         };
         let broker_port: u16 = env_or_panic!("MQTT_PORT").parse().unwrap_or(1883);
@@ -309,6 +338,12 @@ pub async fn network_task(
         let mut packet_id: u16 = 1;
 
         loop {
+            if !stack.is_link_up() {
+                log::warn!("WiFi: link is down, reconnecting...");
+                led_command(LedCommand::MqttConnecting);
+                break;
+            }
+
             let mut mqtt_read_buf = [0u8; 1024];
 
             let read_fut =

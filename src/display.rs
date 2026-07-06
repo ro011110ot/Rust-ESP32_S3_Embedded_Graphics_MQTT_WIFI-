@@ -94,18 +94,18 @@ const THEME_DEFAULT: Theme = Theme {
 };
 
 const THEME_DARK: Theme = Theme {
-    bg: Rgb565::new(1, 1, 2),
-    card: Rgb565::new(4, 6, 10),
-    border: Rgb565::new(7, 10, 15),
-    primary: Rgb565::new(0, 31, 31),
-    secondary: Rgb565::new(0, 15, 31),
-    warning: Rgb565::new(31, 40, 0),
-    danger: Rgb565::new(31, 8, 8),
+    bg: Rgb565::new(2, 2, 3),
+    card: Rgb565::new(8, 9, 12),
+    border: Rgb565::new(14, 16, 20),
+    primary: Rgb565::new(6, 46, 31),
+    secondary: Rgb565::new(2, 46, 16),
+    warning: Rgb565::new(30, 39, 1),
+    danger: Rgb565::new(29, 17, 8),
     text: Rgb565::new(31, 63, 31),
-    text_muted: Rgb565::new(12, 18, 22),
-    nav: Rgb565::new(1, 1, 2),
-    nav_active: Rgb565::new(7, 10, 15),
-    nav_inactive: Rgb565::new(4, 6, 10),
+    text_muted: Rgb565::new(18, 24, 28),
+    nav: Rgb565::new(2, 2, 3),
+    nav_active: Rgb565::new(14, 16, 20),
+    nav_inactive: Rgb565::new(8, 9, 12),
 };
 
 static DARK_MODE: AtomicBool = AtomicBool::new(false);
@@ -426,38 +426,16 @@ fn draw_weather_icon<D: DrawTarget<Color = Rgb565>>(
     Ok(())
 }
 
-const THEME_BTN_X: i32 = 218;
-const THEME_BTN_Y: i32 = CONTENT_Y + 24;
-const THEME_BTN_W: i32 = 22;
-const THEME_BTN_H: i32 = 22;
+const THEME_BTN_X: i32 = 185;
+const THEME_BTN_Y: i32 = CONTENT_Y + 22;
+const THEME_BTN_W: i32 = 50;
+const THEME_BTN_H: i32 = 50;
 
 fn draw_theme_toggle_button<D: DrawTarget<Color = Rgb565>>(
     display: &mut D,
 ) -> Result<(), D::Error> {
-    Rectangle::new(
-        Point::new(THEME_BTN_X, THEME_BTN_Y),
-        Size::new(THEME_BTN_W as u32, THEME_BTN_H as u32),
-    )
-    .draw_styled(
-        &PrimitiveStyleBuilder::new()
-            .fill_color(theme().card)
-            .stroke_color(theme().border)
-            .stroke_width(1)
-            .build(),
-        display,
-    )?;
     let is_dark = DARK_MODE.load(Ordering::Relaxed);
-    let indicator_color = if is_dark { theme().primary } else { theme().warning };
-    Rectangle::new(
-        Point::new(THEME_BTN_X + 7, THEME_BTN_Y + 7),
-        Size::new(8, 8),
-    )
-    .draw_styled(
-        &PrimitiveStyleBuilder::new()
-            .fill_color(indicator_color)
-            .build(),
-        display,
-    )?;
+    draw_weather_icon(display, if is_dark { "01n" } else { "01d" }, THEME_BTN_X, THEME_BTN_Y)?;
     Ok(())
 }
 

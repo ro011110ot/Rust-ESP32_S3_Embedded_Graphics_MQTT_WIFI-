@@ -79,33 +79,37 @@ struct Theme {
 }
 
 const THEME_DEFAULT: Theme = Theme {
+    // Light mode: store inverted values so display (with INVON) shows light bg + dark text
+    // Screen shows: bg≈white, text≈black, cards≈off-white
     bg: Rgb565::new(3, 6, 3),
     card: Rgb565::new(5, 10, 5),
     border: Rgb565::new(8, 16, 9),
-    primary: Rgb565::new(6, 46, 31),
-    secondary: Rgb565::new(2, 46, 16),
-    warning: Rgb565::new(30, 39, 1),
-    danger: Rgb565::new(29, 17, 8),
-    text: Rgb565::new(30, 61, 30),
-    text_muted: Rgb565::new(18, 36, 18),
+    primary: Rgb565::new(25, 17, 0),
+    secondary: Rgb565::new(29, 17, 15),
+    warning: Rgb565::new(1, 24, 30),
+    danger: Rgb565::new(2, 46, 23),
+    text: Rgb565::new(31, 63, 31),
+    text_muted: Rgb565::new(19, 39, 19),
     nav: Rgb565::new(3, 6, 3),
     nav_active: Rgb565::new(8, 16, 9),
     nav_inactive: Rgb565::new(5, 10, 5),
 };
 
 const THEME_DARK: Theme = Theme {
-    bg: Rgb565::new(2, 2, 3),
-    card: Rgb565::new(8, 9, 12),
-    border: Rgb565::new(14, 16, 20),
-    primary: Rgb565::new(6, 46, 31),
-    secondary: Rgb565::new(2, 46, 16),
-    warning: Rgb565::new(30, 39, 1),
-    danger: Rgb565::new(29, 17, 8),
-    text: Rgb565::new(31, 63, 31),
-    text_muted: Rgb565::new(18, 24, 28),
-    nav: Rgb565::new(2, 2, 3),
-    nav_active: Rgb565::new(14, 16, 20),
-    nav_inactive: Rgb565::new(8, 9, 12),
+    // Dark mode: store values so display shows dark bg + white text
+    // Screen shows: bg≈black, text≈white, cards≈dark grey
+    bg: Rgb565::new(28, 57, 28),
+    card: Rgb565::new(25, 50, 25),
+    border: Rgb565::new(18, 34, 18),
+    primary: Rgb565::new(25, 17, 0),
+    secondary: Rgb565::new(29, 17, 15),
+    warning: Rgb565::new(1, 24, 30),
+    danger: Rgb565::new(2, 46, 23),
+    text: Rgb565::new(0, 0, 0),
+    text_muted: Rgb565::new(12, 24, 12),
+    nav: Rgb565::new(28, 57, 28),
+    nav_active: Rgb565::new(18, 34, 18),
+    nav_inactive: Rgb565::new(25, 50, 25),
 };
 
 static DARK_MODE: AtomicBool = AtomicBool::new(false);

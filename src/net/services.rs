@@ -30,7 +30,7 @@ pub async fn ntp_sync(stack: &Stack<'static>) -> Option<time::LocalTime> {
         Ok(ip) => ip,
         Err(_) => {
             match stack.dns_query(ntp_host, DnsQueryType::A).await {
-                Ok(addrs) => match addrs.get(0) {
+                Ok(addrs) => match addrs.first() {
                     Some(IpAddress::Ipv4(addr)) => {
                         defmt::info!("NTP: resolved {} to {}", ntp_host, addr);
                         *addr
@@ -84,7 +84,7 @@ pub async fn fetch_weather(stack: &Stack<'static>, state: &AppState) {
     )
         .await
     {
-        Ok(addrs) => match addrs.get(0) {
+        Ok(addrs) => match addrs.first() {
             Some(IpAddress::Ipv4(addr)) => *addr,
             _ => {
                 defmt::warn!("Weather: DNS returned no IPv4 address");

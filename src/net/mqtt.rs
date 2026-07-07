@@ -157,7 +157,7 @@ pub(crate) fn json_extract<'a>(msg: &'a str, key: &str) -> Option<&'a str> {
         let end = s.find('"')?;
         Some(&s[..end])
     } else {
-        let end = rest.find(|c| c == ',' || c == '}' || c == ']').unwrap_or(rest.len());
+        let end = rest.find([',', '}', ']']).unwrap_or(rest.len());
         Some(rest[..end].trim())
     }
 }

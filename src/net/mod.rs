@@ -111,7 +111,7 @@ pub async fn network_task(
                 defmt::info!("MQTT: resolving {} via DNS...", broker_host);
                 loop {
                     match stack.dns_query(broker_host, DnsQueryType::A).await {
-                        Ok(addrs) => match addrs.get(0) {
+                        Ok(addrs) => match addrs.first() {
                             Some(IpAddress::Ipv4(addr)) => {
                                 defmt::info!("MQTT: resolved {} to {}", broker_host, addr);
                                 break *addr;

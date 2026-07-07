@@ -3,7 +3,6 @@
 ///   from _ftoa (which calls double-precision libgcc functions that
 ///   cross the 1GB boundary in the default ESP32-S3 link layout).
 /// + linker script selection and error handling (from esp-generate template).
-
 use std::path::Path;
 
 
@@ -149,7 +148,7 @@ void *memset(void *d, int c, size_t n) {
         std::fs::write(&stub_c, c_code).expect("write printf_stub.c");
 
         let status = std::process::Command::new(&cc)
-            .args(&[
+            .args([
                 "-c", "-o",
                 stub_o.to_str().unwrap(),
                 stub_c.to_str().unwrap(),
@@ -161,7 +160,7 @@ void *memset(void *d, int c, size_t n) {
         assert!(status.success(), "CC compile failed");
 
         let status = std::process::Command::new(&ar)
-            .args(&["rcs",
+            .args(["rcs",
                 stub_a.to_str().unwrap(),
                 stub_o.to_str().unwrap(),
             ])

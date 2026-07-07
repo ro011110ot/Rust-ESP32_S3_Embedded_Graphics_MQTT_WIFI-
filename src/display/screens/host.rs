@@ -65,7 +65,7 @@ pub fn draw_host_screen<D: DrawTarget<Color=Rgb565>>(
         )?;
         draw_progress_bar(display, 40, by + 1, 140, 7, core_val as u8, theme::theme().primary)?;
         draw_textbox(
-            display, &format!("{}", fmt_0dp_w(core_val)),
+            display, &fmt_0dp_w(core_val),
             Rectangle::new(Point::new(180, by), Size::new(48, 12)),
             &PROFONT_12_POINT, theme::theme().primary,
             HorizontalAlignment::Right, VerticalAlignment::Middle,

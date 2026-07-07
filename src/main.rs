@@ -106,6 +106,12 @@ pub struct AppState {
     inner: CsMutex<RefCell<AppStateInner>>,
 }
 
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AppState {
     pub const fn new() -> Self {
         Self {

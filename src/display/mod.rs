@@ -414,9 +414,9 @@ pub async fn display_task(state: &'static AppState) {
     let mut delay = Delay::new();
 
     let mut reset_pin = Output::new(rst, Level::High, OutputConfig::default());
-    _ = reset_pin.set_low();
+    reset_pin.set_low();
     delay.delay_ms(50);
-    _ = reset_pin.set_high();
+    reset_pin.set_high();
     delay.delay_ms(50);
 
     let mut display = match Builder::new(ILI9341Rgb565, di)
@@ -443,7 +443,7 @@ pub async fn display_task(state: &'static AppState) {
     display
         .set_pixels(
             0, 0, DISP_W - 1, DISP_H - 1,
-            core::iter::repeat(Rgb565::BLACK).take(PIXEL_COUNT),
+            core::iter::repeat_n(Rgb565::BLACK, PIXEL_COUNT),
         )
         .ok();
 
@@ -467,14 +467,14 @@ pub async fn display_task(state: &'static AppState) {
             > Duration::from_millis(DIMMING_TIMEOUT_MS)
         {
             backlight_on = false;
-            _ = backlight.set_low();
+            backlight.set_low();
         }
 
         if let Some((tx, ty)) = touch::read_touch(&mut touch_dev) {
             last_touch = Instant::now();
             if !backlight_on {
                 backlight_on = true;
-                _ = backlight.set_high();
+                backlight.set_high();
             } else if !touch::handle_nav_touch(tx, ty, state) {
                 touch::handle_theme_toggle(tx, ty, state);
             }

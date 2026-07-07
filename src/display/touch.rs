@@ -46,10 +46,8 @@ pub fn read_touch(spi: &mut impl embedded_hal::spi::SpiDevice<u8>) -> Option<(i3
 
 pub(crate) fn handle_theme_toggle(tx: i32, ty: i32, state: &AppState) -> bool {
     if state.read().active_screen != Screen::Weather { return false; }
-    if tx >= super::THEME_BTN_X
-        && tx < super::THEME_BTN_X + super::THEME_BTN_W
-        && ty >= super::THEME_BTN_Y
-        && ty < super::THEME_BTN_Y + super::THEME_BTN_H
+    if (super::THEME_BTN_X..super::THEME_BTN_X + super::THEME_BTN_W).contains(&tx)
+        && (super::THEME_BTN_Y..super::THEME_BTN_Y + super::THEME_BTN_H).contains(&ty)
     {
         toggle_theme();
         defmt::info!("Display: theme toggled (dark={})", is_dark_mode());

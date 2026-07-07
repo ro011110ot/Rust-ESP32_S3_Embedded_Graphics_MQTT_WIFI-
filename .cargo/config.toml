@@ -1,8 +1,11 @@
+[env]
+DEFMT_LOG = "info"
+
 [unstable]
 build-std = ["core", "compiler_builtins", "alloc"]
 
 [target.xtensa-esp32s3-none-elf]
-runner = "espflash flash --monitor"
+runner = "espflash flash --monitor -L defmt"
 
 [build]
 rustflags = [

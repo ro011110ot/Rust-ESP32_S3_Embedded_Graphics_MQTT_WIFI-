@@ -407,7 +407,7 @@ pub async fn display_task(state: &'static AppState) {
         .display_size(DISP_W, DISP_H)
         .orientation(Orientation::new())
         .color_order(ColorOrder::Bgr)
-        .invert_colors(ColorInversion::Normal)
+        .invert_colors(ColorInversion::Inverted)
         .init(&mut delay)
     {
         Ok(d) => d,

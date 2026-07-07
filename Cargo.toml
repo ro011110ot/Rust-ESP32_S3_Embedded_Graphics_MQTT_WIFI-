@@ -36,5 +36,5 @@ chrono-tz = { version = "0.9", default-features = false }
 lto = "fat"
 opt-level = "s"
 codegen-units = 1
-debug = false
+debug = 2
 panic = "abort"

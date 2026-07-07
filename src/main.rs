@@ -18,7 +18,7 @@ use esp_hal::{
 };
 use esp_hal_smartled::{buffer_size, color_order, Rgb8RmtSmartLeds, Timing};
 use heapless::Vec;
-use smart_leds_trait::{RGB8, SmartLedsWrite};
+use smart_leds_trait::{SmartLedsWrite, RGB8};
 
 use core::alloc::{GlobalAlloc, Layout};
 use core::mem::MaybeUninit;
@@ -49,10 +49,10 @@ use crate::led::LedCommand;
 /// `esp-hal-smartled2` v0.28.2. Halving the base values ensures accurate T0H.
 struct Ws2812FixedTiming;
 impl Timing for Ws2812FixedTiming {
-    const TIME_0_HIGH: u16 = 175;
     const TIME_0_LOW: u16 = 350;
-    const TIME_1_HIGH: u16 = 400;
+    const TIME_0_HIGH: u16 = 175;
     const TIME_1_LOW: u16 = 300;
+    const TIME_1_HIGH: u16 = 400;
 }
 
 // ============================================================================
@@ -227,7 +227,24 @@ pub struct AppStateSnapshot {
 // Tasks
 // ============================================================================
 
+fn update_led_blink(
+    cmd: LedCommand, blink_on: &mut bool, last_toggle: &mut Instant,
+) -> RGB8 {
+    match led::blink_interval_ms(cmd) {
+        None => led::command_to_rgb(cmd),
+        Some(ms) => {
+            let now = Instant::now();
+            if now.duration_since(*last_toggle) > Duration::from_millis(ms) {
+                *blink_on = !*blink_on;
+                *last_toggle = now;
+            }
+            if *blink_on { led::command_to_rgb(cmd) } else { RGB8::new(0, 0, 0) }
+        }
+    }
+}
+
 #[embassy_executor::task]
+
 async fn led_task() {
     let p = unsafe { esp_hal::peripherals::Peripherals::steal() };
 
@@ -251,17 +268,7 @@ async fn led_task() {
             blink_on = true;
             last_toggle = Instant::now();
         }
-        let interval = led::blink_interval_ms(current_cmd);
-        let rgb = if let Some(ms) = interval {
-            let now = Instant::now();
-            if now.duration_since(last_toggle) > Duration::from_millis(ms) {
-                blink_on = !blink_on;
-                last_toggle = now;
-            }
-            if blink_on { led::command_to_rgb(current_cmd) } else { RGB8::new(0, 0, 0) }
-        } else {
-            led::command_to_rgb(current_cmd)
-        };
+        let rgb = update_led_blink(current_cmd, &mut blink_on, &mut last_toggle);
         if led.write(core::iter::once(rgb)).is_err() { defmt::warn!("LED: write error"); }
         Timer::after(Duration::from_millis(50)).await;
     }
@@ -274,12 +281,12 @@ async fn net_runner_task(mut runner: embassy_net::Runner<'static, esp_radio::wif
 
 #[embassy_executor::task]
 async fn app_net_task(stack: embassy_net::Stack<'static>, wifi_ctrl: esp_radio::wifi::WifiController<'static>, state: &'static AppState) {
-    crate::net::network_task(stack, wifi_ctrl, state).await
+    net::network_task(stack, wifi_ctrl, state).await
 }
 
 #[embassy_executor::task]
 async fn display_task(state: &'static AppState) {
-    crate::display::display_task(state).await
+    display::display_task(state).await
 }
 
 // ============================================================================

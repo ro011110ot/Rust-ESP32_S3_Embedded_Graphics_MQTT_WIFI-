@@ -2,9 +2,9 @@ use alloc::boxed::Box;
 use alloc::format;
 use core::fmt::Write;
 
+use embassy_time::{Duration, Instant, Timer};
 use embedded_hal_bus::spi::AtomicDevice;
 use embedded_hal_bus::util::AtomicCell;
-use embassy_time::{Duration, Instant, Timer};
 
 use embedded_graphics::{
     draw_target::DrawTarget,
@@ -17,12 +17,12 @@ use embedded_graphics::{
     Pixel,
 };
 
+use embedded_hal::delay::DelayNs;
 use embedded_text::{
-    TextBox,
     alignment::{HorizontalAlignment, VerticalAlignment},
     style::TextBoxStyleBuilder,
+    TextBox,
 };
-use embedded_hal::delay::DelayNs;
 
 use esp_hal::{
     delay::Delay,
@@ -34,9 +34,9 @@ use esp_hal::{
 };
 
 use mipidsi::dcs::InterfaceExt;
+use mipidsi::interface::SpiInterface;
 use mipidsi::options::{ColorInversion, ColorOrder, Orientation};
 use mipidsi::{models::ILI9341Rgb565, Builder};
-use mipidsi::interface::SpiInterface;
 
 use crate::AppState;
 
@@ -136,7 +136,7 @@ impl DrawTarget for DisplayBuffer {
             {
                 let idx = (coord.y as usize * DISP_W as usize + coord.x as usize) * 2;
                 let raw: u16 = color.into_storage();
-                let stored = if BYTE_SWAP { raw.swap_bytes() } else { raw };
+                let stored = raw;
                 fb[idx..idx + 2].copy_from_slice(&stored.to_ne_bytes());
             }
         }
@@ -171,7 +171,7 @@ impl DrawTarget for DisplayBuffer {
             if idx >= PIXEL_COUNT { break; }
             let idx = idx * 2;
             let raw: u16 = color.into_storage();
-            let stored = if BYTE_SWAP { raw.swap_bytes() } else { raw };
+            let stored = raw;
             fb[idx..idx + 2].copy_from_slice(&stored.to_ne_bytes());
         }
         Ok(())
@@ -333,9 +333,9 @@ pub(crate) fn format_uptime(total_secs: u64) -> heapless::String<32> {
     let mins = (total_secs % 3600) / 60;
     let mut s = heapless::String::new();
     if days > 0 {
-        core::write!(&mut s, "{}d {:02}h {:02}m", days, hours, mins).ok();
+        write!(&mut s, "{}d {:02}h {:02}m", days, hours, mins).ok();
     } else {
-        core::write!(&mut s, "{:02}h {:02}m", hours, mins).ok();
+        write!(&mut s, "{:02}h {:02}m", hours, mins).ok();
     }
     s
 }
@@ -360,7 +360,7 @@ fn format_time(state: &AppState) -> heapless::String<32> {
     let data = state.read();
     if let Some(t) = data.local_time {
         let mut s = heapless::String::new();
-        core::write!(&mut s, "{:02}:{:02}:{:02}", t.hour, t.minute, t.second).ok();
+        write!(&mut s, "{:02}:{:02}:{:02}", t.hour, t.minute, t.second).ok();
         s
     } else {
         heapless::String::try_from("--:--:--").unwrap()
@@ -509,7 +509,7 @@ pub async fn display_task(state: &'static AppState) {
             let fb = unsafe { (*core::ptr::addr_of_mut!(FB)).as_ref().unwrap().as_ref() };
             for cy in 0..16 {
                 let y0 = cy * 20;
-                let y1 = (y0 + 19).min(DISP_H as u16 - 1);
+                let y1 = (y0 + 19).min(DISP_H - 1);
                 let iter = (y0..=y1).flat_map(move |y| {
                     let base = y as usize * DISP_W as usize;
                     (0..DISP_W as usize).map(move |x| {

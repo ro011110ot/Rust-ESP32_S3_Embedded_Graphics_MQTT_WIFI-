@@ -5,9 +5,9 @@ A production-ready, async Rust firmware for the **ESP32-S3** featuring a clean, 
 ## Key Features
 
 * **Four-Screen Dashboard Interface:** Cycle between Weather, Local Sensors, VPS Monitoring, and Host System metrics.
-* **Fully Asynchronous Stack:** Utilizing `embassy-net` and `esp-hal`, it natively juggles WiFi, MQTT v3.1.1, NTP time sync, and HTTP REST requests concurrently.
+* **Fully Asynchronous Stack:** Utilizing `embassy-net` and `esp-hal`, it natively juggles Wi-Fi, MQTT v3.1.1, NTP time sync, and HTTP REST requests concurrently.
 * **Intelligent Auto-Dimming:** Preserves panel lifespan by switching off the backlight after 3 minutes of inactivity. Any screen touch wakes the device instantly.
-* **Secure Credential Injection:** No hardcoded secrets. All WiFi, MQTT, and API credentials are injected via environment variables (`.env`) during compilation using `build.rs`.
+* **Secure Credential Injection:** No hardcoded secrets. All Wi-Fi, MQTT, and API credentials are injected via environment variables (`.env`) during compilation using `build.rs`.
 * **RGB LED Status Feedback:** Utilizes the onboard WS2812B NeoPixel to indicate networking states (e.g., connecting, fetching data, stable connection, error).
 
 ---
@@ -16,17 +16,17 @@ A production-ready, async Rust firmware for the **ESP32-S3** featuring a clean, 
 
 This project expects the display and touch controller to share **HSPI / SPI2** on the ESP32-S3.
 
-| ESP32-S3 GPIO | ILI9341 Display | XPT2046 Touch | Cable Color |
-| :--- | :--- | :--- | :--- |
-| **GPIO 12** (SCK) | SCK | T_CLK | Yellow |
-| **GPIO 11** (MOSI) | SDI | T_DIN | Green |
-| **GPIO 13** (MISO) | SDO | T_DO | Orange |
-| **GPIO 10** | CS | - | Blue |
-| **GPIO 7** | DC | - | Violet |
-| **GPIO 9** | RESET | - | Grey |
-| **GPIO 38** | BL (Backlight) | - | White |
-| **GPIO 3** | - | T_CS | Brown |
-| **GPIO 48** | Data In (WS2812B LED) | - | - |
+| ESP32-S3 GPIO      | ILI9341 Display       | XPT2046 Touch | Cable Color |
+|:-------------------|:----------------------|:--------------|:------------|
+| **GPIO 12** (SCK)  | SCK                   | T_CLK         | Yellow      |
+| **GPIO 11** (MOSI) | SDI                   | T_DIN         | Green       |
+| **GPIO 13** (MISO) | SDO                   | T_DO          | Orange      |
+| **GPIO 10**        | CS                    | -             | Blue        |
+| **GPIO 7**         | DC                    | -             | Violet      |
+| **GPIO 9**         | RESET                 | -             | Grey        |
+| **GPIO 38**        | BL (Backlight)        | -             | White       |
+| **GPIO 3**         | -                     | T_CS          | Brown       |
+| **GPIO 48**        | Data In (WS2812B LED) | -             | -           |
 
 ---
 
@@ -52,7 +52,7 @@ cp .env_TEMPLATE .env
 ```
 
 Provide the necessary credentials:
-- **WiFi:** Supports up to 3 fallback networks.
+- **Wi-Fi:** Supports up to 3 fallback networks.
 - **MQTT Broker:** IP address, credentials, and topics.
 - **OpenWeatherMap:** API key and location.
 

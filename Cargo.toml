@@ -16,24 +16,19 @@ embassy-executor = { version = "0.10", default-features = false }
 esp-backtrace = { version = "0.19.0", features = ["esp32s3", "panic-handler", "println"] }
 esp-println = { version = "0.17.0", features = ["esp32s3", "log-04", "defmt-espflash"] }
 embassy-time = { version = "0.5.1", default-features = false }
-embassy-sync = { version = "0.6.2", default-features = false }
-embedded-hal-bus = "0.2"
+embedded-hal-bus = "0.3.0"
 embedded-graphics = "0.8.2"
 profont = "0.7.0"
 embedded-text = "0.7.3"
-embedded-layout = "0.4.2"
 minipng = "1.0.0"
 mipidsi = "0.10.0"
-display-interface-spi = "0.5.0"
 embedded-hal = "1.0.0"
-embedded-io = "0.6.1"
 smart-leds-trait = "0.3.2"
-log = "0.4.30"
 defmt = "1.1"
-heapless = { version = "0.8.0", features = ["defmt-03"] }
+heapless = { version = "0.9.3", features = ["defmt"] }
 critical-section = "1.2.0"
 chrono = { version = "0.4.44", default-features = false, features = ["alloc"] }
-chrono-tz = { version = "0.9", default-features = false }
+chrono-tz = { version = "0.10.4", default-features = false }
 
 [profile.release]
 lto = "fat"

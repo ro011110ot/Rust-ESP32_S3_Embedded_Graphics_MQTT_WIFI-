@@ -15,7 +15,7 @@ pub struct LocalTime {
 }
 
 pub fn ntp_to_unix(ntp_secs: u64) -> i64 {
-    (ntp_secs.wrapping_sub(NTP_TO_UNIX_EPOCH)) as i64
+    ntp_secs.wrapping_sub(NTP_TO_UNIX_EPOCH) as i64
 }
 
 fn unix_to_local(unix_ts: i64) -> Option<LocalTime> {

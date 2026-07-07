@@ -1,8 +1,8 @@
 use crate::AppState;
 
 use super::theme::{is_dark_mode, toggle_theme};
-use super::NAV_TOP;
 use super::Screen;
+use super::NAV_TOP;
 
 const TOUCH_X_MIN: u16 = 288;
 const TOUCH_X_MAX: u16 = 1866;

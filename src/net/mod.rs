@@ -224,7 +224,7 @@ pub async fn network_task(
             let now = embassy_time::Instant::now();
 
             let ping_due = now - last_ping
-                > embassy_time::Duration::from_secs(MQTT_PING_INTERVAL_SECS);
+                > Duration::from_secs(MQTT_PING_INTERVAL_SECS);
             if mqtt_established && ping_due {
                 let _ = mqtt.write(&mqtt::build_pingreq()).await;
                 last_ping = now;
@@ -232,9 +232,9 @@ pub async fn network_task(
 
             if ntp_due
                 || (now - last_ntp
-                > embassy_time::Duration::from_secs(NTP_INTERVAL_SECS)
+                > Duration::from_secs(NTP_INTERVAL_SECS)
                 && now - last_ntp_attempt
-                > embassy_time::Duration::from_secs(NTP_RETRY_SECS))
+                > Duration::from_secs(NTP_RETRY_SECS))
             {
                 ntp_due = false;
                 last_ntp_attempt = now;
@@ -247,7 +247,7 @@ pub async fn network_task(
 
             if weather_due
                 || now - last_weather
-                > embassy_time::Duration::from_secs(WEATHER_INTERVAL_SECS)
+                > Duration::from_secs(WEATHER_INTERVAL_SECS)
             {
                 weather_due = false;
                 services::fetch_weather(&stack, state).await;

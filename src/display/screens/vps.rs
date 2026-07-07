@@ -14,7 +14,7 @@ pub fn draw_vps_screen<D: DrawTarget<Color = Rgb565>>(
     display: &mut D, state: &AppState,
 ) -> Result<(), D::Error> {
     draw_text(
-        display, "VPS Status", 78, 50 + crate::display::CONTENT_Y,
+        display, "VPS Status", 78, 26 + crate::display::CONTENT_Y + crate::display::TITLE_Y_INC,
         &FONT_9X15, theme::theme().primary,
     )?;
     let data = state.read();

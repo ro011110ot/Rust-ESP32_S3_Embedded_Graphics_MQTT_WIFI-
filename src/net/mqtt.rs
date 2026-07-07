@@ -169,7 +169,7 @@ pub(crate) fn handle_vps_data(msg: &str, state: &AppState) {
         .and_then(|s| s.parse::<f32>().ok()).unwrap_or(0.0);
     let disk = json_extract(msg, "disk")
         .and_then(|s| s.parse::<f32>().ok()).unwrap_or(0.0);
-    let uptime = json_extract(msg, "uptime")
+    let uptime = json_extract(msg, "uptime_seconds")
         .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
     state.set_vps(cpu, ram, disk, uptime);
 }

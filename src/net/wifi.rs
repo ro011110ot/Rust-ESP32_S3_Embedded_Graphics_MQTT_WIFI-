@@ -9,8 +9,7 @@ pub fn mask_credential(s: &str) -> String<128> {
         }
     } else {
         for (i, c) in s.chars().enumerate() {
-            if i < 3 || i >= len - 2 { out.push(c).ok(); }
-            else if i == 3 { out.push('*').ok(); }
+            if i < 3 || i >= len - 2 { out.push(c).ok(); } else if i == 3 { out.push('*').ok(); }
         }
         while out.len() < len { out.push('*').ok(); }
     }

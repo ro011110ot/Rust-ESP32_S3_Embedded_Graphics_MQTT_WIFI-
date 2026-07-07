@@ -198,7 +198,8 @@ fn parse_cpu_array(msg: &str) -> [f32; 4] {
             for num_str in array_str[..end].split(',') {
                 if idx >= 4 { break; }
                 if let Ok(v) = num_str.trim().parse::<f32>() {
-                    result[idx] = v; idx += 1;
+                    result[idx] = v;
+                    idx += 1;
                 }
             }
         }

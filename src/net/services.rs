@@ -56,7 +56,7 @@ pub async fn ntp_sync(stack: &Stack<'static>) -> Option<time::LocalTime> {
     match embassy_time::with_timeout(
         Duration::from_secs(3), udp.recv_from(&mut buf),
     )
-    .await
+        .await
     {
         Ok(Ok((len, _))) if len >= 44 => {
             let secs = u32::from_be_bytes([buf[40], buf[41], buf[42], buf[43]]) as u64;
@@ -82,7 +82,7 @@ pub async fn fetch_weather(stack: &Stack<'static>, state: &AppState) {
     let host = match stack.dns_query(
         "api.openweathermap.org", DnsQueryType::A,
     )
-    .await
+        .await
     {
         Ok(addrs) => match addrs.get(0) {
             Some(IpAddress::Ipv4(addr)) => *addr,
@@ -114,8 +114,8 @@ pub async fn fetch_weather(stack: &Stack<'static>, state: &AppState) {
     if embassy_time::with_timeout(
         Duration::from_secs(10), tcp.connect((host, 80)),
     )
-    .await
-    .is_err()
+        .await
+        .is_err()
     {
         defmt::warn!("Weather: TCP connect to {} timed out", host);
         return;
@@ -137,7 +137,7 @@ pub async fn fetch_weather(stack: &Stack<'static>, state: &AppState) {
         match embassy_time::with_timeout(
             Duration::from_secs(5), reader.read(&mut resp_buf[total..]),
         )
-        .await
+            .await
         {
             Ok(Ok(0)) => break,
             Ok(Ok(n)) => total += n,

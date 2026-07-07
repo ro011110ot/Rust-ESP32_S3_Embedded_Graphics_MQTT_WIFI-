@@ -9,13 +9,18 @@ use embassy_time::{Duration, Instant, Timer};
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{OriginDimensions, Point, Size},
-    mono_font::ascii::FONT_6X10,
-    mono_font::MonoTextStyle,
+    mono_font::{ascii::FONT_6X10, MonoFont, MonoTextStyle},
     pixelcolor::Rgb565,
     prelude::*,
     primitives::{PrimitiveStyleBuilder, Rectangle, StyledDrawable},
     text::Text,
     Pixel,
+};
+
+use embedded_text::{
+    TextBox,
+    alignment::{HorizontalAlignment, VerticalAlignment},
+    style::TextBoxStyleBuilder,
 };
 use embedded_hal::delay::DelayNs;
 
@@ -50,7 +55,6 @@ const BYTE_SWAP: bool = false;
 // --- UI Layout Constants ---
 pub(crate) const STATUS_H: i32 = 18;
 pub(crate) const CONTENT_Y: i32 = 12;
-pub(crate) const TITLE_Y_INC: i32 = 10;
 const NAV_H: i32 = 40;
 pub(crate) const NAV_TOP: i32 = DISP_H as i32 - NAV_H;
 pub(crate) const NAV_BTN_W: i32 = DISP_W as i32 / 4;
@@ -120,7 +124,7 @@ impl DrawTarget for DisplayBuffer {
 
     fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
-        I: IntoIterator<Item = Pixel<Rgb565>>,
+        I: IntoIterator<Item=Pixel<Rgb565>>,
     {
         let fb = unsafe {
             let raw: *mut Option<Box<[u8]>> = core::ptr::addr_of_mut!(FB);
@@ -142,7 +146,7 @@ impl DrawTarget for DisplayBuffer {
     fn fill_contiguous<I>(&mut self, area: &Rectangle, colors: I)
                           -> Result<(), Self::Error>
     where
-        I: IntoIterator<Item = Rgb565>,
+        I: IntoIterator<Item=Rgb565>,
     {
         let fb = unsafe {
             let raw: *mut Option<Box<[u8]>> = core::ptr::addr_of_mut!(FB);
@@ -203,7 +207,7 @@ pub(crate) fn sanitize_text(input: &str) -> heapless::String<128> {
     out
 }
 
-pub(crate) fn draw_card<D: DrawTarget<Color = Rgb565>>(
+pub(crate) fn draw_card<D: DrawTarget<Color=Rgb565>>(
     display: &mut D, x: i32, y: i32, w: i32, h: i32,
 ) -> Result<(), D::Error> {
     Rectangle::new(Point::new(x, y), Size::new(w as u32, h as u32))
@@ -223,15 +227,29 @@ pub(crate) fn draw_card<D: DrawTarget<Color = Rgb565>>(
     Ok(())
 }
 
-pub(crate) fn draw_text<D: DrawTarget<Color = Rgb565>>(
+pub(crate) fn draw_text<D: DrawTarget<Color=Rgb565>>(
     display: &mut D, text: &str, x: i32, y: i32,
-    font: &embedded_graphics::mono_font::MonoFont, color: Rgb565,
+    font: &MonoFont, color: Rgb565,
 ) -> Result<(), D::Error> {
     let style = MonoTextStyle::new(font, color);
     Text::new(text, Point::new(x, y), style).draw(display).map(|_| ())
 }
 
-pub(crate) fn draw_progress_bar<D: DrawTarget<Color = Rgb565>>(
+pub(crate) fn draw_textbox<D: DrawTarget<Color=Rgb565>>(
+    display: &mut D, text: &str, bounds: Rectangle,
+    font: &MonoFont, color: Rgb565,
+    h_align: HorizontalAlignment, v_align: VerticalAlignment,
+) -> Result<(), D::Error> {
+    let char_style = MonoTextStyle::new(font, color);
+    let tbox_style = TextBoxStyleBuilder::new()
+        .alignment(h_align)
+        .vertical_alignment(v_align)
+        .build();
+    TextBox::with_textbox_style(text, bounds, char_style, tbox_style).draw(display)?;
+    Ok(())
+}
+
+pub(crate) fn draw_progress_bar<D: DrawTarget<Color=Rgb565>>(
     display: &mut D, x: i32, y: i32, w: i32, h: i32, pct: u8, color: Rgb565,
 ) -> Result<(), D::Error> {
     Rectangle::new(Point::new(x, y), Size::new(w as u32, h as u32))
@@ -250,17 +268,17 @@ pub(crate) fn draw_progress_bar<D: DrawTarget<Color = Rgb565>>(
     Ok(())
 }
 
-fn draw_status_bar<D: DrawTarget<Color = Rgb565>>(
+fn draw_status_bar<D: DrawTarget<Color=Rgb565>>(
     display: &mut D, time_str: &str, wifi_connected: bool,
 ) -> Result<(), D::Error> {
     Rectangle::new(
         Point::new(0, CONTENT_Y),
         Size::new(DISP_W as u32, STATUS_H as u32),
     )
-    .draw_styled(
-        &PrimitiveStyleBuilder::new().fill_color(theme::theme().bg).build(),
-        display,
-    )?;
+        .draw_styled(
+            &PrimitiveStyleBuilder::new().fill_color(theme::theme().bg).build(),
+            display,
+        )?;
     draw_text(
         display, time_str, 4, CONTENT_Y + 4, &FONT_6X10, theme::theme().text_muted,
     )?;
@@ -273,7 +291,7 @@ fn draw_status_bar<D: DrawTarget<Color = Rgb565>>(
     Ok(())
 }
 
-fn draw_nav_bar<D: DrawTarget<Color = Rgb565>>(
+fn draw_nav_bar<D: DrawTarget<Color=Rgb565>>(
     display: &mut D, active: Screen,
 ) -> Result<(), D::Error> {
     Rectangle::new(Point::new(0, NAV_TOP), Size::new(DISP_W as u32, NAV_H as u32))
@@ -288,12 +306,12 @@ fn draw_nav_bar<D: DrawTarget<Color = Rgb565>>(
             Point::new(x + 2, NAV_TOP + 2),
             Size::new(NAV_BTN_W as u32 - 4, NAV_H as u32 - 4),
         )
-        .draw_styled(
-            &PrimitiveStyleBuilder::new()
-                .fill_color(if is_active { theme::theme().nav_active } else { theme::theme().nav_inactive })
-                .build(),
-            display,
-        )?;
+            .draw_styled(
+                &PrimitiveStyleBuilder::new()
+                    .fill_color(if is_active { theme::theme().nav_active } else { theme::theme().nav_inactive })
+                    .build(),
+                display,
+            )?;
         let label = sanitize_text(screen.label());
         draw_text(
             display, &label,
@@ -447,7 +465,7 @@ pub async fn display_task(state: &'static AppState) {
 
         if backlight_on
             && now.duration_since(last_touch)
-                > Duration::from_millis(DIMMING_TIMEOUT_MS)
+            > Duration::from_millis(DIMMING_TIMEOUT_MS)
         {
             backlight_on = false;
             _ = backlight.set_low();
@@ -484,7 +502,7 @@ pub async fn display_task(state: &'static AppState) {
                 Screen::Vps => screens::vps::draw_vps_screen(&mut fb_display, state),
                 Screen::Host => screens::host::draw_host_screen(&mut fb_display, state),
             }
-            .ok();
+                .ok();
 
             draw_nav_bar(&mut fb_display, state.read().active_screen).ok();
 

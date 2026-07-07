@@ -1,24 +1,35 @@
 use embedded_graphics::{
+    geometry::{Point, Size},
     mono_font::ascii::FONT_6X10,
     pixelcolor::Rgb565,
     prelude::*,
+    primitives::Rectangle,
 };
+use embedded_text::alignment::{HorizontalAlignment, VerticalAlignment};
 
 use crate::AppState;
 
 use crate::display::theme;
-use crate::display::{draw_card, draw_text, sanitize_text};
+use crate::display::{draw_card, draw_textbox, sanitize_text, CONTENT_Y};
 
-pub fn draw_sensors_screen<D: DrawTarget<Color = Rgb565>>(
+pub fn draw_sensors_screen<D: DrawTarget<Color=Rgb565>>(
     display: &mut D, state: &AppState,
 ) -> Result<(), D::Error> {
-    draw_text(
-        display, "Sensor-Daten", 60, 26 + crate::display::CONTENT_Y + crate::display::TITLE_Y_INC,
-        &embedded_graphics::mono_font::ascii::FONT_9X15, theme::theme().primary,
+    // --- Header card ---
+    let hdr_y = CONTENT_Y + 32;
+    draw_card(display, 5, hdr_y, 230, 24)?;
+    draw_textbox(
+        display, "Sensor-Daten",
+        Rectangle::new(Point::new(11, hdr_y), Size::new(218, 24)),
+        &FONT_6X10, theme::theme().primary,
+        HorizontalAlignment::Center, VerticalAlignment::Middle,
     )?;
+
     let data = state.read();
     let sensors = &data.sensors;
-    let (card_w, card_h, gap, start_x, start_y) = (108i32, 72i32, 6i32, 5i32, 48i32 + crate::display::CONTENT_Y);
+    let (card_w, card_h, gap) = (108i32, 66i32, 4i32);
+    let start_x = 5;
+    let start_y = hdr_y + 24 + 4;
 
     for i in 0..6 {
         let (col, row) = (i % 2, i / 2);
@@ -27,11 +38,26 @@ pub fn draw_sensors_screen<D: DrawTarget<Color = Rgb565>>(
         draw_card(display, x, y, card_w, card_h)?;
         if let Some(sensor) = sensors.get(i as usize) {
             let label = sanitize_text(sensor.label.as_str());
-            draw_text(display, &label, x + 4, y + 4, &FONT_6X10, theme::theme().text_muted)?;
+            draw_textbox(
+                display, &label,
+                Rectangle::new(Point::new(x + 6, y + 2), Size::new(card_w as u32 - 12, 16)),
+                &FONT_6X10, theme::theme().text_muted,
+                HorizontalAlignment::Left, VerticalAlignment::Middle,
+            )?;
             let value = sanitize_text(sensor.value.as_str());
-            draw_text(display, &value, x + 4, y + 32, &FONT_6X10, theme::theme().text)?;
+            draw_textbox(
+                display, &value,
+                Rectangle::new(Point::new(x + 6, y + 28), Size::new(card_w as u32 - 12, 30)),
+                &FONT_6X10, theme::theme().text,
+                HorizontalAlignment::Left, VerticalAlignment::Middle,
+            )?;
         } else {
-            draw_text(display, "--", x + 4, y + 32, &FONT_6X10, theme::theme().text_muted)?;
+            draw_textbox(
+                display, "--",
+                Rectangle::new(Point::new(x + 6, y + 28), Size::new(card_w as u32 - 12, 30)),
+                &FONT_6X10, theme::theme().text_muted,
+                HorizontalAlignment::Left, VerticalAlignment::Middle,
+            )?;
         }
     }
     Ok(())

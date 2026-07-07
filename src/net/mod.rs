@@ -53,7 +53,7 @@ pub async fn network_task(
             match embassy_time::with_timeout(
                 Duration::from_secs(15), wifi_ctrl.connect_async(),
             )
-            .await
+                .await
             {
                 Ok(Ok(info)) => {
                     defmt::info!(
@@ -187,7 +187,7 @@ pub async fn network_task(
             match embassy_time::with_timeout(
                 Duration::from_millis(500), read_fut,
             )
-            .await
+                .await
             {
                 Ok(Ok(0)) => {
                     defmt::warn!("MQTT: connection closed");
@@ -232,9 +232,9 @@ pub async fn network_task(
 
             if ntp_due
                 || (now - last_ntp
-                    > embassy_time::Duration::from_secs(NTP_INTERVAL_SECS)
-                    && now - last_ntp_attempt
-                        > embassy_time::Duration::from_secs(NTP_RETRY_SECS))
+                > embassy_time::Duration::from_secs(NTP_INTERVAL_SECS)
+                && now - last_ntp_attempt
+                > embassy_time::Duration::from_secs(NTP_RETRY_SECS))
             {
                 ntp_due = false;
                 last_ntp_attempt = now;
@@ -247,7 +247,7 @@ pub async fn network_task(
 
             if weather_due
                 || now - last_weather
-                    > embassy_time::Duration::from_secs(WEATHER_INTERVAL_SECS)
+                > embassy_time::Duration::from_secs(WEATHER_INTERVAL_SECS)
             {
                 weather_due = false;
                 services::fetch_weather(&stack, state).await;

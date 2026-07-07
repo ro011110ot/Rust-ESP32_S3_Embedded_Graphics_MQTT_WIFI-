@@ -110,8 +110,13 @@ impl AppState {
     pub const fn new() -> Self {
         Self {
             inner: CsMutex::new(RefCell::new(AppStateInner {
-                sensors: Vec::new(), vps: None, host: None, weather: None,
-                wifi_connected: false, active_screen: display::Screen::Weather, local_time: None,
+                sensors: Vec::new(),
+                vps: None,
+                host: None,
+                weather: None,
+                wifi_connected: false,
+                active_screen: display::Screen::Weather,
+                local_time: None,
             })),
         }
     }
@@ -120,9 +125,13 @@ impl AppState {
         critical_section::with(|cs| {
             let inner = self.inner.borrow_ref(cs);
             AppStateSnapshot {
-                sensors: inner.sensors.clone(), vps: inner.vps.clone(), host: inner.host.clone(),
-                weather: inner.weather.clone(), wifi_connected: inner.wifi_connected,
-                active_screen: inner.active_screen, local_time: inner.local_time,
+                sensors: inner.sensors.clone(),
+                vps: inner.vps.clone(),
+                host: inner.host.clone(),
+                weather: inner.weather.clone(),
+                wifi_connected: inner.wifi_connected,
+                active_screen: inner.active_screen,
+                local_time: inner.local_time,
             }
         })
     }
@@ -176,9 +185,11 @@ impl AppState {
             if let Some(ref mut t) = self.inner.borrow_ref_mut(cs).local_time {
                 t.second += 1;
                 if t.second >= 60 {
-                    t.second = 0; t.minute += 1;
+                    t.second = 0;
+                    t.minute += 1;
                     if t.minute >= 60 {
-                        t.minute = 0; t.hour += 1;
+                        t.minute = 0;
+                        t.hour += 1;
                         if t.hour >= 24 { t.hour = 0; }
                     }
                 }
@@ -190,7 +201,10 @@ impl AppState {
         critical_section::with(|cs| {
             let inner = &mut *self.inner.borrow_ref_mut(cs);
             inner.weather = Some(WeatherData {
-                temp, humidity, wind, pressure,
+                temp,
+                humidity,
+                wind,
+                pressure,
                 desc: heapless::String::try_from(desc).unwrap_or_default(),
                 icon: heapless::String::try_from(icon).unwrap_or_default(),
             });
@@ -233,13 +247,16 @@ async fn led_task() {
     let mut last_toggle = Instant::now();
     loop {
         if let Some(cmd) = led::recv_led_command() {
-            current_cmd = cmd; blink_on = true; last_toggle = Instant::now();
+            current_cmd = cmd;
+            blink_on = true;
+            last_toggle = Instant::now();
         }
         let interval = led::blink_interval_ms(current_cmd);
         let rgb = if let Some(ms) = interval {
             let now = Instant::now();
             if now.duration_since(last_toggle) > Duration::from_millis(ms) {
-                blink_on = !blink_on; last_toggle = now;
+                blink_on = !blink_on;
+                last_toggle = now;
             }
             if blink_on { led::command_to_rgb(current_cmd) } else { RGB8::new(0, 0, 0) }
         } else {

@@ -3,22 +3,26 @@ use alloc::string::ToString;
 use alloc::vec;
 
 use embedded_graphics::{
-    geometry::Point,
-    mono_font::ascii::{FONT_6X10, FONT_9X15, FONT_9X18_BOLD},
+    geometry::{Point, Size},
     pixelcolor::Rgb565,
     prelude::*,
     primitives::Rectangle,
 };
+use embedded_text::alignment::{HorizontalAlignment, VerticalAlignment};
+use profont::{PROFONT_12_POINT, PROFONT_18_POINT, PROFONT_24_POINT};
 
 use crate::AppState;
 
 use crate::display::theme;
 use crate::display::{
-    draw_card, draw_text, fmt_0dp_w, fmt_1dp_w, THEME_BTN_X, THEME_BTN_Y,
+    draw_card, draw_textbox, fmt_0dp_w, fmt_1dp_w, CONTENT_Y,
 };
 
-fn draw_weather_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D, code: &str, x: i32, y: i32,
+// Weather icon sizes
+const ICON_SIZE: i32 = 50;
+
+fn draw_weather_icon<D: DrawTarget<Color=Rgb565>>(
+    display: &mut D, code: &str, x: i32, y: i32, size: i32,
 ) -> Result<(), D::Error> {
     let data: &[u8] = match code {
         "01d" => include_bytes!("../../../assets/icons_png/01d.png"),
@@ -50,25 +54,41 @@ fn draw_weather_icon<D: DrawTarget<Color = Rgb565>>(
     let w = image.width() as i32;
     let h = image.height() as i32;
 
-    for row in 0..h {
+    let scale_x = size as f32 / w as f32;
+    let scale_y = size as f32 / h as f32;
+    let scale = scale_x.min(scale_y);
+    let out_w = (w as f32 * scale) as i32;
+    let out_h = (h as f32 * scale) as i32;
+    let x_off = (size - out_w) / 2;
+    let y_off = (size - out_h) / 2;
+
+    for row in 0..out_h {
+        let src_row = (row as f32 / scale) as i32;
         let mut col = 0;
-        while col < w {
-            let idx = ((row * w + col) * 4) as usize;
+        while col < out_w {
+            let src_col = (col as f32 / scale) as i32;
+            let idx = ((src_row * w + src_col) * 4) as usize;
             if pixels[idx + 3] >= 128 {
                 let start_col = col;
-                while col < w {
-                    let i = ((row * w + col) * 4) as usize;
+                while col < out_w {
+                    let sc = (col as f32 / scale) as i32;
+                    let i = ((src_row * w + sc) * 4) as usize;
                     if pixels[i + 3] < 128 { break; }
                     col += 1;
                 }
                 let len = (col - start_col) as usize;
                 let area = Rectangle::new(
-                    Point::new(start_col + x, row + y),
+                    Point::new(start_col + x + x_off, row + y + y_off),
                     Size::new(len as u32, 1),
                 );
                 let iter = (0..len).map(|ci| {
-                    let i = (ci + start_col as usize + (row * w) as usize) * 4;
-                    Rgb565::new(pixels[i] >> 3, pixels[i + 1] >> 2, pixels[i + 2] >> 3)
+                    let sc = ((ci as i32 + start_col) as f32 / scale) as i32;
+                    let i = ((src_row * w + sc) * 4) as usize;
+                    Rgb565::new(
+                        31 - (pixels[i] >> 3),
+                        63 - (pixels[i + 1] >> 2),
+                        31 - (pixels[i + 2] >> 3),
+                    )
                 });
                 display.fill_contiguous(&area, iter)?;
             } else {
@@ -79,106 +99,107 @@ fn draw_weather_icon<D: DrawTarget<Color = Rgb565>>(
     Ok(())
 }
 
-fn draw_theme_toggle_button<D: DrawTarget<Color = Rgb565>>(
+fn draw_theme_toggle_button<D: DrawTarget<Color=Rgb565>>(
     display: &mut D,
 ) -> Result<(), D::Error> {
     let icon = if theme::is_dark_mode() { "01n" } else { "01d" };
-    draw_weather_icon(display, icon, THEME_BTN_X, THEME_BTN_Y)
+    draw_weather_icon(display, icon, 185, 40, 36)
 }
 
-pub fn draw_weather_screen<D: DrawTarget<Color = Rgb565>>(
+pub fn draw_weather_screen<D: DrawTarget<Color=Rgb565>>(
     display: &mut D, state: &AppState,
 ) -> Result<(), D::Error> {
-    draw_card(display, 5, 22 + crate::display::CONTENT_Y, 230, 58)?;
     let data = state.read();
+
+    // --- Card 0: Date / Time ---
+    let c0_y = 22 + CONTENT_Y;
+    draw_card(display, 5, c0_y, 230, 52)?;
     let time_str = if let Some(t) = data.local_time {
         format!("{:02}.{:02}.{:04}", t.day, t.month, t.year)
     } else {
         "--.--.----".to_string()
     };
-    draw_text(
-        display, &time_str, 10, 28 + crate::display::CONTENT_Y + crate::display::TITLE_Y_INC,
-        &FONT_6X10, theme::theme().text_muted,
+    draw_textbox(
+        display, &time_str,
+        Rectangle::new(Point::new(8, c0_y + 4), Size::new(160, 18)),
+        &PROFONT_12_POINT, theme::theme().text_muted,
+        HorizontalAlignment::Left, VerticalAlignment::Middle,
     )?;
     let time_str2 = if let Some(t) = data.local_time {
         format!("{:02}:{:02}:{:02}", t.hour, t.minute, t.second)
     } else {
         "--:--:--".to_string()
     };
-    draw_text(
-        display, &time_str2, 10, 52 + crate::display::CONTENT_Y + crate::display::TITLE_Y_INC,
-        &FONT_9X15, theme::theme().primary,
+    draw_textbox(
+        display, &time_str2,
+        Rectangle::new(Point::new(8, c0_y + 24), Size::new(160, 24)),
+        &PROFONT_18_POINT, theme::theme().primary,
+        HorizontalAlignment::Left, VerticalAlignment::Middle,
     )?;
     draw_theme_toggle_button(display)?;
 
-    draw_card(display, 5, 85 + crate::display::CONTENT_Y, 230, 72)?;
+    // --- Card 1: Weather condition ---
+    let c1_y = 80 + CONTENT_Y;
+    draw_card(display, 5, c1_y, 230, 62)?;
     let temp_str = if let Some(ref w) = data.weather {
         format!("{} C", fmt_1dp_w(w.temp))
     } else {
         "--.- C".to_string()
     };
-    draw_text(
-        display, &temp_str, 10, 95 + crate::display::CONTENT_Y,
-        &FONT_9X18_BOLD, theme::theme().text,
+    draw_textbox(
+        display, &temp_str,
+        Rectangle::new(Point::new(8, c1_y + 4), Size::new(120, 36)),
+        &PROFONT_24_POINT, theme::theme().text,
+        HorizontalAlignment::Left, VerticalAlignment::Middle,
     )?;
     let desc_str = if let Some(w) = &data.weather {
         crate::display::sanitize_text(&w.desc)
     } else {
         heapless::String::try_from("--").unwrap()
     };
-    draw_text(
-        display, &desc_str, 10, 120 + crate::display::CONTENT_Y,
-        &FONT_6X10, theme::theme().text_muted,
+    draw_textbox(
+        display, &desc_str,
+        Rectangle::new(Point::new(8, c1_y + 42), Size::new(120, 16)),
+        &PROFONT_12_POINT, theme::theme().text_muted,
+        HorizontalAlignment::Left, VerticalAlignment::Middle,
     )?;
 
     let icon_code = data.weather.as_ref().map(|w| w.icon.as_str()).unwrap_or("--");
-    draw_weather_icon(display, icon_code, 170, 102)?;
+    draw_weather_icon(display, icon_code, 170, c1_y + 4, ICON_SIZE)?;
 
+    // --- Cards 2-5: 2x2 grid (Temp, Feuchte, Wind, Druck) ---
     let (t, h, w_spd, p) = if let Some(ref wx) = data.weather {
         (wx.temp, wx.humidity, wx.wind, wx.pressure)
     } else {
         (0.0, 0.0, 0.0, 0.0)
     };
 
-    draw_card(display, 5, 163 + crate::display::CONTENT_Y, 108, 64)?;
-    draw_text(
-        display, "Temp", 8, 171 + crate::display::CONTENT_Y,
-        &FONT_6X10, theme::theme().warning,
-    )?;
-    draw_text(
-        display, &format!("{}C", fmt_1dp_w(t)),
-        8, 189 + crate::display::CONTENT_Y, &FONT_6X10, theme::theme().text,
-    )?;
+    let grid_x = [5, 120];
+    let grid_y = [148 + CONTENT_Y, 204 + CONTENT_Y];
+    let card_w: i32 = 109;
+    let card_h: i32 = 50;
 
-    draw_card(display, 119, 163 + crate::display::CONTENT_Y, 108, 64)?;
-    draw_text(
-        display, "Feuchte", 122, 171 + crate::display::CONTENT_Y,
-        &FONT_6X10, theme::theme().primary,
-    )?;
-    draw_text(
-        display, &format!("{}%", fmt_0dp_w(h)),
-        122, 189 + crate::display::CONTENT_Y, &FONT_6X10, theme::theme().text,
-    )?;
+    let entries = [
+        ("Temp", &format!("{}C", fmt_1dp_w(t)), theme::theme().warning),
+        ("Feuchte", &format!("{}%", fmt_0dp_w(h)), theme::theme().primary),
+        ("Wind", &format!("{}km/h", fmt_1dp_w(w_spd)), theme::theme().secondary),
+        ("Druck", &format!("{}hPa", fmt_0dp_w(p)), theme::theme().warning),
+    ];
 
-    draw_card(display, 5, 233 + crate::display::CONTENT_Y, 108, 64)?;
-    draw_text(
-        display, "Wind", 8, 241 + crate::display::CONTENT_Y,
-        &FONT_6X10, theme::theme().secondary,
-    )?;
-    draw_text(
-        display, &format!("{}km/h", fmt_1dp_w(w_spd)),
-        8, 259 + crate::display::CONTENT_Y, &FONT_6X10, theme::theme().text,
-    )?;
+    for (i, (label, value, color)) in entries.iter().enumerate() {
+        let col = i % 2;
+        let row = i / 2;
+        let x = grid_x[col];
+        let y = grid_y[row];
+        let inner_label = Rectangle::new(Point::new(x + 6, y + 4), Size::new(card_w as u32 - 12, 16));
+        let inner_value = Rectangle::new(Point::new(x + 6, y + 20), Size::new(card_w as u32 - 12, 24));
 
-    draw_card(display, 119, 233 + crate::display::CONTENT_Y, 108, 64)?;
-    draw_text(
-        display, "Druck", 122, 241 + crate::display::CONTENT_Y,
-        &FONT_6X10, theme::theme().warning,
-    )?;
-    draw_text(
-        display, &format!("{}hPa", fmt_0dp_w(p)),
-        122, 259 + crate::display::CONTENT_Y, &FONT_6X10, theme::theme().text,
-    )?;
+        draw_card(display, x, y, card_w, card_h)?;
+        draw_textbox(display, label, inner_label, &PROFONT_12_POINT, *color,
+                     HorizontalAlignment::Left, VerticalAlignment::Middle)?;
+        draw_textbox(display, value, inner_value, &PROFONT_12_POINT, theme::theme().text,
+                     HorizontalAlignment::Left, VerticalAlignment::Middle)?;
+    }
 
     Ok(())
 }

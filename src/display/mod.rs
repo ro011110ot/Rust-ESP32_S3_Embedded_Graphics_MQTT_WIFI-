@@ -50,7 +50,6 @@ const DISP_W: u16 = 240;
 const DISP_H: u16 = 320;
 pub(crate) const PIXEL_COUNT: usize = DISP_W as usize * DISP_H as usize;
 pub(crate) const FB_SIZE: usize = PIXEL_COUNT * 2;
-const BYTE_SWAP: bool = false;
 
 // --- UI Layout Constants ---
 pub(crate) const STATUS_H: i32 = 18;

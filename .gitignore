@@ -16,6 +16,10 @@ __pycache__/
 .idea/
 .vscode/
 
+# IDE config / inspection files
+*.xml
+.qodana/
+
 # Compiled binary files (e.g., LVGL font binaries)
 *.bin
 

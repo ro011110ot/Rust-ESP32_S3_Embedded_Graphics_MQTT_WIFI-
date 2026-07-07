@@ -36,3 +36,5 @@ opt-level = "s"
 codegen-units = 1
 debug = 2
 panic = "abort"
+test = false
+bench = false

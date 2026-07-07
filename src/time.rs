@@ -14,23 +14,26 @@ pub struct LocalTime {
     pub weekday: u8,
 }
 
+impl LocalTime {
+    /// Converts a Unix timestamp to LocalTime based on Berlin timezone
+    pub fn from_unix(unix_ts: i64) -> Option<Self> {
+        let dt = Berlin.timestamp_opt(unix_ts, 0).earliest()?;
+        Some(Self {
+            year: dt.year() as u16,
+            month: dt.month() as u8,
+            day: dt.day() as u8,
+            hour: dt.hour() as u8,
+            minute: dt.minute() as u8,
+            second: dt.second() as u8,
+            weekday: dt.weekday().num_days_from_monday() as u8,
+        })
+    }
+}
+
 pub fn ntp_to_unix(ntp_secs: u64) -> i64 {
     ntp_secs.wrapping_sub(NTP_TO_UNIX_EPOCH) as i64
 }
 
-fn unix_to_local(unix_ts: i64) -> Option<LocalTime> {
-    let dt = Berlin.timestamp_opt(unix_ts, 0).earliest()?;
-    Some(LocalTime {
-        year: dt.year() as u16,
-        month: dt.month() as u8,
-        day: dt.day() as u8,
-        hour: dt.hour() as u8,
-        minute: dt.minute() as u8,
-        second: dt.second() as u8,
-        weekday: dt.weekday().num_days_from_monday() as u8,
-    })
-}
-
 pub fn ntp_to_local(ntp_secs: u64) -> Option<LocalTime> {
-    unix_to_local(ntp_to_unix(ntp_secs))
+    LocalTime::from_unix(ntp_to_unix(ntp_secs))
 }

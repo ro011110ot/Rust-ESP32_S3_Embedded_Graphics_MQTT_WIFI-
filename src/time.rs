@@ -3,7 +3,7 @@ use chrono_tz::Europe::Berlin;
 
 pub const NTP_TO_UNIX_EPOCH: u64 = 2_208_988_800;
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, defmt::Format)]
 pub struct LocalTime {
     pub year: u16,
     pub month: u8,

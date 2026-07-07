@@ -23,3 +23,4 @@ __pycache__/
 # Compiled binary files (e.g., LVGL font binaries)
 *.bin
 
+/qodana.yaml
